@@ -3,10 +3,12 @@ import sys
 import json
 import pygame
 import argparse
+import time
 from typing import List, Tuple, Optional
 
 from engine.game_engine import GameEngine
 from engine.block import Block
+from engine.ai_player import AIPlayer
 from shapes import SHAPES
 
 # Default configuration (same as in simulator.py)
@@ -96,6 +98,14 @@ class GameUI:
         self.preview_origin = (280 + 8 * self.cell_size + 32, 16)
         self.preview_spacing = 160  # Spacing between preview blocks
         
+        # Simulation state
+        self.ai_player = None
+        self.simulation_running = False
+        self.simulation_runs = 0
+        self.current_run = 0
+        self.steps_per_second = 1.0
+        self.last_simulation_step = 0
+        
         # Create config input fields
         self.create_config_inputs()
         
@@ -166,6 +176,31 @@ class GameUI:
         # Apply button
         y += section_gap * 2
         self.apply_button_rect = pygame.Rect(left_x, y, field_width, field_height * 1.5)
+        
+        # Simulation controls section
+        y += field_height * 1.5 + section_gap
+        self.simulation_label = (left_x, y)
+        y += 25
+        
+        # Steps per second input
+        self.steps_per_second_label = (left_x, y)
+        y += 25
+        steps_per_second_rect = pygame.Rect(left_x, y, field_width, field_height)
+        self.steps_per_second_field = InputField(steps_per_second_rect, "1.0", 5, numeric=True)
+        self.input_fields.append(self.steps_per_second_field)
+        y += field_height + 10
+        
+        # Number of runs input
+        self.runs_label = (left_x, y)
+        y += 25
+        runs_rect = pygame.Rect(left_x, y, field_width, field_height)
+        self.runs_field = InputField(runs_rect, "1", 3, numeric=True)
+        self.input_fields.append(self.runs_field)
+        y += field_height + 20
+        
+        # Simulation buttons
+        self.simulate_button_rect = pygame.Rect(left_x, y, field_width // 2 - 5, field_height * 1.5)
+        self.abort_button_rect = pygame.Rect(left_x + field_width // 2 + 5, y, field_width // 2 - 5, field_height * 1.5)
 
     def apply_config_changes(self):
         try:
@@ -208,7 +243,13 @@ class GameUI:
         
         # Generate initial three preview blocks
         self.refill_preview()
-    
+        
+        # Only reset AI player if not during simulation
+        if not hasattr(self, 'simulation_running') or not self.simulation_running:
+            self.ai_player = AIPlayer()
+            self.simulation_running = False
+            self.current_run = 0
+
     def refill_preview(self):
         # Fill preview with blocks until we have three
         while len(self.preview_blocks) < 3:
@@ -249,6 +290,8 @@ class GameUI:
     def main_loop(self):
         running = True
         while running:
+            current_time = time.time()
+            
             # Handle events
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -273,8 +316,16 @@ class GameUI:
                     if self.apply_button_rect and self.apply_button_rect.collidepoint(x, y):
                         self.apply_config_changes()
                     
-                    # Don't process game clicks if game over
-                    if self.game_over:
+                    # Check if simulate button was clicked
+                    if self.simulate_button_rect and self.simulate_button_rect.collidepoint(x, y):
+                        self.start_simulation()
+                    
+                    # Check if abort button was clicked
+                    if self.abort_button_rect and self.abort_button_rect.collidepoint(x, y):
+                        self.abort_simulation()
+                    
+                    # Don't process game clicks if game over or simulation is running
+                    if self.game_over or self.simulation_running:
                         continue
                     
                     # Check if click is on the preview area - updated to use preview_cell_size
@@ -321,6 +372,19 @@ class GameUI:
                             # Check for game over
                             self.game_over = self.engine.no_move_left()
             
+            # Run simulation step if active
+            if self.simulation_running:
+                if self.game_over:
+                    # Auto-restart for next simulation run
+                    self.current_run += 1
+                    if self.current_run < self.simulation_runs:
+                        self.restart_simulation()  # Use specialized restart that preserves simulation state
+                    else:
+                        self.simulation_running = False
+                elif current_time - self.last_simulation_step >= 1.0 / self.steps_per_second:
+                    self.run_simulation_step()
+                    self.last_simulation_step = current_time
+            
             # Draw everything
             self.window.fill(WHITE)
             self._draw_config_sidebar()
@@ -328,8 +392,8 @@ class GameUI:
             self._draw_preview()
             self._draw_hud()
             
-            # Draw game over overlay if needed
-            if self.game_over:
+            # Draw game over overlay if needed but not during simulation
+            if self.game_over and not self.simulation_running:
                 self._draw_game_over()
             
             pygame.display.flip()
@@ -378,6 +442,41 @@ class GameUI:
             apply_text = self.font.render("Apply Changes", True, BLACK)
             text_rect = apply_text.get_rect(center=self.apply_button_rect.center)
             self.window.blit(apply_text, text_rect)
+        
+        # Draw simulation section label
+        simulation_label = self.font.render("Simulation Controls:", True, BLACK)
+        self.window.blit(simulation_label, self.simulation_label)
+        
+        # Draw steps per second label
+        steps_label = self.font.render("Steps per second:", True, DARK_GRAY)
+        self.window.blit(steps_label, self.steps_per_second_label)
+        
+        # Draw runs label
+        runs_label = self.font.render("Number of runs:", True, DARK_GRAY)
+        self.window.blit(runs_label, self.runs_label)
+        
+        # Draw simulation buttons
+        if self.simulate_button_rect:
+            pygame.draw.rect(self.window, BLUE, self.simulate_button_rect)
+            pygame.draw.rect(self.window, BLACK, self.simulate_button_rect, 1)
+            
+            simulate_text = self.font.render("Simulate", True, WHITE)
+            text_rect = simulate_text.get_rect(center=self.simulate_button_rect.center)
+            self.window.blit(simulate_text, text_rect)
+        
+        if self.abort_button_rect:
+            pygame.draw.rect(self.window, DARK_GRAY, self.abort_button_rect)
+            pygame.draw.rect(self.window, BLACK, self.abort_button_rect, 1)
+            
+            abort_text = self.font.render("Abort", True, WHITE)
+            text_rect = abort_text.get_rect(center=self.abort_button_rect.center)
+            self.window.blit(abort_text, text_rect)
+        
+        # Draw simulation status if running
+        if self.simulation_running:
+            status_y = self.abort_button_rect.bottom + 15
+            status_text = self.font.render(f"Run: {self.current_run + 1}/{self.simulation_runs}", True, BLUE)
+            self.window.blit(status_text, (self.simulate_button_rect.x, status_y))
     
     def _draw_board(self):
         # Draw the board outline
@@ -491,6 +590,100 @@ class GameUI:
         
         self.window.blit(game_over_text, (text_x, text_y))
         self.window.blit(restart_text, (text_x + 50, text_y + 50))
+
+    def restart_simulation(self):
+        """Restart the game but preserve simulation state variables"""
+        self.engine = GameEngine(self.config)
+        self.preview_blocks = []
+        self.selected_index = None
+        self.game_over = False
+        
+        # Generate initial three preview blocks
+        self.refill_preview()
+        
+        # Don't reset simulation status variables
+        print(f"Restarting simulation run {self.current_run + 1}/{self.simulation_runs}")
+
+    def start_simulation(self):
+        """Start the AI simulation at the specified steps per second"""
+        if not self.simulation_running:
+            try:
+                self.steps_per_second = float(self.steps_per_second_field.value)
+                self.simulation_runs = int(self.runs_field.value)
+                
+                if self.steps_per_second <= 0:
+                    self.steps_per_second = 1.0
+                
+                if self.simulation_runs <= 0:
+                    self.simulation_runs = 1
+                
+                self.simulation_running = True
+                self.current_run = 0
+                self.last_simulation_step = time.time()
+                
+                # Initialize AI player if not already done
+                if not self.ai_player:
+                    self.ai_player = AIPlayer()
+                
+                # If game was over, restart first run
+                if self.game_over:
+                    self.restart_simulation()
+            except ValueError:
+                # If inputs are invalid, use default values
+                self.steps_per_second = 1.0
+                self.simulation_runs = 1
+                self.simulation_running = True
+                self.last_simulation_step = time.time()
+                
+                # If game was over, restart first run
+                if self.game_over:
+                    self.restart_simulation()
+    
+    def abort_simulation(self):
+        """Stop the AI simulation and allow manual play"""
+        self.simulation_running = False
+    
+    def run_simulation_step(self):
+        """Execute one AI step in the simulation"""
+        # If no preview blocks, refill
+        if not self.preview_blocks:
+            self.refill_preview()
+            self.selected_index = 0
+        
+        # Choose a move using the AI
+        if self.selected_index is not None:
+            # Get the selected block and rotation
+            block, rotation = self.preview_blocks[self.selected_index]
+            rotated_block = self.get_block_with_rotation(block, rotation)
+            
+            # Set as current block so AI can use it
+            self.engine.current_block = rotated_block
+            
+            # Get AI's move
+            move = self.ai_player.choose(self.engine)
+            
+            if move:
+                row, col = move
+                
+                # Place the block
+                if self.engine.board.can_place(rotated_block, row, col):
+                    self.engine.place(row, col)
+                    
+                    # Remove the placed block from preview
+                    self.preview_blocks.pop(self.selected_index)
+                    
+                    # Update selected index or reset if none left
+                    if not self.preview_blocks:
+                        self.selected_index = None
+                        self.refill_preview()
+                    else:
+                        self.selected_index = min(self.selected_index, len(self.preview_blocks) - 1)
+                    
+                    # Check for game over
+                    self.game_over = self.engine.no_move_left()
+            else:
+                # If AI can't find a move, consider it game over
+                self.game_over = True
 
 
 if __name__ == "__main__":
