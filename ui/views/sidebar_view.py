@@ -85,31 +85,32 @@ class SidebarView:
         
         # Bottom half - Simulation Controls section
         # -----------------------------------------------------
-        y = separator_y + 30
+        y = separator_y + 20
         
         # Simulation section title
         self.simulation_label = (left_x, y)
-        y += 30
+        y += 20
         
         # AI Player dropdown
         self.ai_player_label = (left_x, y)
-        y += 25
+        y += 20
         ai_player_rect = pygame.Rect(left_x, y, field_width, field_height)
         self.ai_player_dropdown = DropdownMenu(ai_player_rect, [])  # Will be populated later
         self.dropdown_menus.append(self.ai_player_dropdown)
-        y += field_height + 10
+        # Increase spacing after dropdown to prevent overlap with next label
+        y += field_height + 20  # More spacing to ensure no overlap
         
         # Steps per second input
         self.steps_per_second_label = (left_x, y)
-        y += 25
+        y += 20
         steps_per_second_rect = pygame.Rect(left_x, y, field_width, field_height)
         self.steps_per_second_field = InputField(steps_per_second_rect, "1.0", 5, numeric=True)
         self.input_fields.append(self.steps_per_second_field)
-        y += field_height + 10
+        y += field_height + 20  # Slightly more spacing here too
         
         # Number of runs input
         self.runs_label = (left_x, y)
-        y += 25
+        y += 20
         runs_rect = pygame.Rect(left_x, y, field_width, field_height)
         self.runs_field = InputField(runs_rect, "1", 3, numeric=True)
         self.input_fields.append(self.runs_field)
@@ -188,10 +189,6 @@ class SidebarView:
         for field in self.input_fields:
             field.draw(surface, self.font)
         
-        # Draw dropdown menus
-        for dropdown in self.dropdown_menus:
-            dropdown.draw(surface, self.font)
-        
         # Draw apply button
         if self.apply_button_rect:
             pygame.draw.rect(surface, GREEN, self.apply_button_rect)
@@ -209,7 +206,7 @@ class SidebarView:
         ai_player_label = self.font.render("AI Player:", True, DARK_GRAY)
         surface.blit(ai_player_label, self.ai_player_label)
         
-        # Draw steps per second label
+        # Draw steps per second label - use standard position now that spacing is fixed
         steps_label = self.font.render("Steps per second:", True, DARK_GRAY)
         surface.blit(steps_label, self.steps_per_second_label)
         
@@ -239,6 +236,10 @@ class SidebarView:
             status_y = self.abort_button_rect.bottom + 15
             status_text = self.font.render(f"Run: {current_run + 1}/{simulation_runs}", True, BLUE)
             surface.blit(status_text, (self.simulate_button_rect.x, status_y))
+        
+        # Draw dropdown menus last to ensure expanded dropdowns are on top
+        for dropdown in self.dropdown_menus:
+            dropdown.draw(surface, self.font)
     
     def handle_event(self, event):
         # Handle input field events

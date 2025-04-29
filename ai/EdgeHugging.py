@@ -38,24 +38,21 @@ class EdgeHuggingAIPlayer(BaseAIPlayer):
         rotated_block = block.rotate_clockwise(rotation)
         
         # Calculate edges of the board
-        board_width = engine.board.width
-        board_height = engine.board.height
+        board_width = engine.board.cols
+        board_height = engine.board.rows
         
         # Calculate edge score
         edge_score = 0
         
         # Iterate through the block cells
-        for r in range(len(rotated_block.grid)):
-            for c in range(len(rotated_block.grid[0])):
-                if rotated_block.grid[r][c]:
-                    # Calculate board position of this cell
-                    board_r = row + r
-                    board_c = col + c
-                    
-                    # Check if cell is along an edge
-                    if (board_r == 0 or board_r == board_height - 1 or 
-                        board_c == 0 or board_c == board_width - 1):
-                        edge_score += 1
+        for r_off, c_off in rotated_block.cells:
+            board_r = row + r_off
+            board_c = col + c_off
+
+            # Check if cell is along an edge
+            if (board_r == 0 or board_r == board_height - 1 or 
+                board_c == 0 or board_c == board_width - 1):
+                edge_score += 1
         
         return edge_score
     
@@ -101,7 +98,7 @@ class EdgeHuggingAIPlayer(BaseAIPlayer):
             
             # Check how many lines would be cleared
             cleared = tmp_board.clear_full_lines()
-            clear_score = len(cleared) * 10  # Weigh line clears more heavily
+            clear_score = cleared * 10  # Weigh line clears more heavily
             
             # Combined score
             score = edge_score + clear_score

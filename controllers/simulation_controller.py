@@ -21,7 +21,7 @@ class SimulationController(GameController):
         self.simulation_running = False
         self.simulation_runs = 0
         self.current_run = 0
-        self.steps_per_second = 1.0
+        self.steps_per_second = 0
         self.last_simulation_step = 0
         self.simulation_stats = []
         
@@ -63,6 +63,7 @@ class SimulationController(GameController):
     def abort_simulation(self):
         """Stop the AI simulation and allow manual play"""
         self.simulation_running = False
+        self.current_run = 0  # Reset run count when aborting simulation
     
     def run_simulation_step(self):
         """Execute one AI step in the simulation"""
@@ -184,11 +185,12 @@ class SimulationController(GameController):
                     self.restart_simulation()
                 else:
                     self.simulation_running = False
+                    self.current_run = 0  # Reset run count when simulation completes
                     # TODO: Display simulation results
                     print(f"Completed {self.simulation_runs} simulation runs")
                     for i, stats in enumerate(self.simulation_stats):
                         print(f"Run {i+1}: Score={stats['score']}, Lines={stats['lines']}, Blocks={stats['blocks_placed']}")
-            elif current_time - self.last_simulation_step >= 1.0 / self.steps_per_second:
+            elif self.steps_per_second == 0 or current_time - self.last_simulation_step >= 1.0 / self.steps_per_second:
                 self.run_simulation_step()
                 self.last_simulation_step = current_time
     
