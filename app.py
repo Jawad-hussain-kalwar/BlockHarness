@@ -2,9 +2,8 @@
 import streamlit as st
 import pandas as pd
 
-from engine.game_engine import GameEngine
-from engine.ai_player import AIPlayer
-from shapes import SHAPES
+from controllers.ai_controller import AIController
+from engine.shapes import SHAPES
 
 st.set_page_config(page_title="BlockHarness Testbed", layout="centered")
 st.title("🧩 BlockHarness – Parameter Playground")
@@ -25,7 +24,7 @@ w2 = st.text_input("Weights at T2 (8 ints)", "1,1,2,3,3,3,3,4")
 runs = st.number_input("Simulations to run", 1, 200, 20, 1)
 
 if st.button("▶️ Run"):
-    cfg = {
+    config = {
         "shapes": SHAPES,
         "shape_weights": weights,
         "difficulty_thresholds": [
@@ -35,16 +34,17 @@ if st.button("▶️ Run"):
     }
 
     def sim_one():
-        eng = GameEngine(cfg)
-        ai = AIPlayer()
-        eng.spawn()
-        while not eng.no_move_left():
-            mv = ai.choose(eng)
-            if mv is None:
-                break
-            eng.place(*mv)
-            eng.spawn()
-        return {"Score": eng.score, "Moves": eng.blocks_placed, "Lines": eng.lines}
+        # Create AI controller with our configuration
+        controller = AIController(config)
+        
+        # Run the simulation until game over
+        results = controller.run_simulation()
+        
+        return {
+            "Score": results["score"], 
+            "Moves": results["blocks_placed"], 
+            "Lines": results["lines"]
+        }
 
     data = [sim_one() for _ in range(runs)]
     df = pd.DataFrame(data)

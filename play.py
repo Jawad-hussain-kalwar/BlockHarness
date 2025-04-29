@@ -6,7 +6,7 @@ def main():
     # Parse command line arguments and get config
     args, config = parse_args()
     
-    # Create the game controller
+    # Create the simulation controller (which extends game controller)
     controller = SimulationController(config)
     
     # Start the game loop

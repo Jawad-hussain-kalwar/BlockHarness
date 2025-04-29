@@ -215,7 +215,7 @@ class SidebarView:
             initial_weights = list(map(int, self.initial_weights_field.value.split(',')))
             
             # Import shapes here to avoid circular imports
-            from shapes import SHAPES
+            from engine.shapes import SHAPES
             
             # Validate weights count
             if len(initial_weights) != len(SHAPES):

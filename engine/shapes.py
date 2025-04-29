@@ -1,4 +1,4 @@
-# shapes.py
+# engine/shapes.py
 # Eight example shapes (feel free to expand)
 SHAPES = [
     [(0, 0)],                                   # single

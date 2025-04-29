@@ -1,34 +1,38 @@
 # controllers/simulation_controller.py
 import time
 import pygame
-from engine.ai_player import AIPlayer
-from engine.game_engine import GameEngine
-from controllers.game_controller import GameController
+from typing import Dict, Tuple
+
+from controllers.game_controller import GameController 
+from controllers.ai_controller import AIController
 from ui.colours import WHITE
 
+
 class SimulationController(GameController):
-    def __init__(self, config):
+    """Controller that adds simulation capabilities to the game controller."""
+    
+    def __init__(self, config: Dict):
+        # Initialize the game controller
         super().__init__(config)
         
         # Simulation state
-        self.ai_player = AIPlayer()
+        self.ai_controller = AIController(config)
         self.simulation_running = False
         self.simulation_runs = 0
         self.current_run = 0
         self.steps_per_second = 1.0
         self.last_simulation_step = 0
+        self.simulation_stats = []
     
     def restart_simulation(self):
         """Restart the game but preserve simulation state variables"""
-        self.engine = GameEngine(self.config)
-        self.preview_blocks = []
-        self.selected_index = None
-        self.game_over = False
+        # Reset AI controller
+        self.ai_controller.reset_engine()
         
-        # Generate initial three preview blocks
-        self.refill_preview()
+        # Reset game controller engine
+        self.reset_engine(preserve_config=True)
         
-        # Don't reset simulation status variables
+        # Sync the engines (they should be identical)
         print(f"Restarting simulation run {self.current_run + 1}/{self.simulation_runs}")
     
     def start_simulation(self):
@@ -40,13 +44,10 @@ class SimulationController(GameController):
             self.simulation_running = True
             self.current_run = 0
             self.last_simulation_step = time.time()
-            
-            # Initialize AI player if not already done
-            if not self.ai_player:
-                self.ai_player = AIPlayer()
+            self.simulation_stats = []
             
             # If game was over, restart first run
-            if self.game_over:
+            if self.engine.game_over:
                 self.restart_simulation()
     
     def abort_simulation(self):
@@ -55,129 +56,123 @@ class SimulationController(GameController):
     
     def run_simulation_step(self):
         """Execute one AI step in the simulation"""
-        # If no preview blocks, refill
-        if not self.preview_blocks:
-            self.refill_preview()
-            self.selected_index = 0
+        # Use AI controller to make a move
+        step_result = self.ai_controller.step()
         
-        # Choose a move using the AI
-        if self.selected_index is not None:
-            # Get the selected block and rotation
-            block, rotation = self.preview_blocks[self.selected_index]
-            rotated_block = self.preview_view.get_block_with_rotation(block, rotation)
-            
-            # Set as current block so AI can use it
-            self.engine.current_block = rotated_block
-            
-            # Get AI's move
-            move = self.ai_player.choose(self.engine)
-            
-            if move:
-                row, col = move
-                
-                # Place the block
-                if self.engine.board.can_place(rotated_block, row, col):
-                    self.engine.place(row, col)
-                    
-                    # Remove the placed block from preview
-                    self.preview_blocks.pop(self.selected_index)
-                    
-                    # Update selected index or reset if none left
-                    if not self.preview_blocks:
-                        self.selected_index = None
-                        self.refill_preview()
-                    else:
-                        self.selected_index = min(self.selected_index, len(self.preview_blocks) - 1)
-                    
-                    # Check for game over
-                    self.game_over = self.engine.no_move_left()
-            else:
-                # If AI can't find a move, consider it game over
-                self.game_over = True
+        # Sync game state to our display engine
+        if step_result:
+            # Copy the game state from the AI engine to our display engine
+            self.engine = self.ai_controller.engine
     
-    def handle_events(self):
-        """Process user input events with simulation handling."""
+    def save_simulation_stats(self, run_stats: Dict) -> None:
+        """Save simulation run statistics to CSV."""
+        stats = {
+            'score': run_stats['score'],
+            'lines': run_stats['lines'],
+            'blocks_placed': run_stats['blocks_placed']
+        }
+        self.stats_manager.save_stats(stats)
+    
+    def _handle_simulation_sidebar_actions(self, action: str) -> None:
+        """Handle simulation-specific sidebar actions."""
+        if action == "apply":
+            self.apply_config_changes()
+            # Also update AI controller config
+            self.ai_controller.update_config(self.config)
+        elif action == "simulate":
+            self.start_simulation()
+        elif action == "abort":
+            self.abort_simulation()
+    
+    def handle_events(self) -> bool:
+        """Process user input events with simulation-specific handling."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return False
             
-            # Handle sidebar events
-            action = self.sidebar_view.handle_event(event)
-            if action == "apply":
-                self.apply_config_changes()
-            elif action == "simulate":
-                self.start_simulation()
-            elif action == "abort":
-                self.abort_simulation()
+            # Handle sidebar events with simulation-specific actions first
+            if event.type == pygame.MOUSEBUTTONDOWN or event.type == pygame.KEYDOWN:
+                action = self.sidebar_view.handle_event(event)
+                if action:
+                    self._handle_simulation_sidebar_actions(action)
+                    if action in ["simulate", "abort"]:  # These are simulation-specific
+                        continue
             
+            # Handle F2 differently to abort simulation
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_F2:
+                self.restart_game()
+                # Also abort simulation if running
+                if self.simulation_running:
+                    self.simulation_running = False
+                continue
+            
+            # Only allow certain inputs when not in simulation mode
+            if self.simulation_running:
+                if event.type == pygame.KEYDOWN and event.key in (pygame.K_ESCAPE, pygame.K_q):
+                    return False
+                # Skip other inputs during simulation
+                continue
+            
+            # Handle other keyboard events
             if event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_ESCAPE, pygame.K_q):
                     return False
-                elif event.key == pygame.K_F2:
-                    self.restart_game(self.config)
-                    # Stop simulation if running
-                    self.simulation_running = False
-                elif event.key == pygame.K_r and not self.game_over and not self.simulation_running:
-                    self.rotate_selected()
+                elif event.key == pygame.K_r and not self.engine.game_over:
+                    self.rotate_block()
+                elif event.key == pygame.K_RETURN and self.engine.game_over:
+                    self.restart_game()
             
-            # Only process mouse click events if not in simulation
-            if not self.simulation_running and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            # Handle mouse events
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 x, y = event.pos
                 
-                # Don't process game clicks if game over
-                if self.game_over:
+                # Handle restart button click
+                if self.engine.game_over and self.overlay_view.is_restart_button_clicked((x, y)):
+                    self.restart_game()
                     continue
                 
-                # Check if click is on the preview area
-                self.handle_preview_click(x, y)
+                # Skip gameplay clicks if game over
+                if self.engine.game_over:
+                    continue
                 
-                # Check if click is on the board area
+                # Handle gameplay mouse events
+                self.handle_preview_click(x, y)
                 self.handle_board_click(x, y)
         
         return True
     
     def draw(self):
         """Render the game state to the screen."""
-        self.window.fill(WHITE)
+        self._draw_core(self.simulation_running, self.current_run, self.simulation_runs)
+    
+    def _simulation_step_handler(self):
+        """Custom step handler for simulation logic."""
+        current_time = time.time()
         
-        # Draw all views
-        self.sidebar_view.draw(self.window, self.simulation_running, self.current_run, self.simulation_runs)
-        self.board_view.draw(self.window, self.engine)
-        self.preview_view.draw(self.window, self.preview_blocks, self.selected_index)
-        self.hud_view.draw(self.window, self.engine)
-        
-        # Draw game over overlay if needed but not during simulation
-        if self.game_over and not self.simulation_running:
-            self.overlay_view.draw_game_over(self.window)
-        
-        pygame.display.flip()
+        # Run simulation step if active
+        if self.simulation_running:
+            if self.ai_controller.engine.game_over:
+                # Collect stats for this run
+                run_stats = self.ai_controller.get_game_state()
+                self.simulation_stats.append(run_stats)
+                
+                # Save simulation stats to CSV
+                self.save_simulation_stats(run_stats)
+                
+                # Auto-restart for next simulation run
+                self.current_run += 1
+                if self.current_run < self.simulation_runs:
+                    self.restart_simulation()
+                else:
+                    self.simulation_running = False
+                    # TODO: Display simulation results
+                    print(f"Completed {self.simulation_runs} simulation runs")
+                    for i, stats in enumerate(self.simulation_stats):
+                        print(f"Run {i+1}: Score={stats['score']}, Lines={stats['lines']}, Blocks={stats['blocks_placed']}")
+            elif current_time - self.last_simulation_step >= 1.0 / self.steps_per_second:
+                self.run_simulation_step()
+                self.last_simulation_step = current_time
     
     def loop(self):
         """Main game loop with simulation support."""
-        running = True
-        while running:
-            current_time = time.time()
-            
-            # Handle input events
-            running = self.handle_events()
-            
-            # Run simulation step if active
-            if self.simulation_running:
-                if self.game_over:
-                    # Auto-restart for next simulation run
-                    self.current_run += 1
-                    if self.current_run < self.simulation_runs:
-                        self.restart_simulation()  # Use specialized restart that preserves simulation state
-                    else:
-                        self.simulation_running = False
-                elif current_time - self.last_simulation_step >= 1.0 / self.steps_per_second:
-                    self.run_simulation_step()
-                    self.last_simulation_step = current_time
-            
-            # Draw everything
-            self.draw()
-            
-            # Cap the frame rate
-            self.clock.tick(60)
-        
-        pygame.quit() 
+        self._loop_core(self._simulation_step_handler) 

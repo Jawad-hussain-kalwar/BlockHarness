@@ -1,5 +1,5 @@
 # config/defaults.py
-from shapes import SHAPES
+from engine.shapes import SHAPES
 
 # Default configuration (same as in simulator.py)
 CONFIG = {
