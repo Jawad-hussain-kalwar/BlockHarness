@@ -2,6 +2,7 @@
 import pygame
 from ui.colours import BLACK, LIGHT_GRAY, DARK_GRAY, GREEN, BLUE, WHITE
 from ui.input_field import InputField
+from ui.dropdown_menu import DropdownMenu
 
 class SidebarView:
     def __init__(self, window_size, font, small_font):
@@ -21,12 +22,22 @@ class SidebarView:
         section_gap = 20
         
         self.input_fields = []
+        self.dropdown_menus = []
         self.apply_button_rect = None
         
-        # Initial weights section
+        # Split the sidebar into two halves
+        half_height = self.window_size[1] // 2
+        separator_y = half_height - 10
+        
+        # Top half - DDA (Dynamic Difficulty Adjustment) section
+        # -----------------------------------------------------
         y = top_y
         
-        # Label
+        # DDA section title
+        self.dda_section_title = (left_x, y)
+        y += 30
+        
+        # Initial weights label
         self.initial_weights_label = (left_x, y)
         y += 25
         
@@ -69,13 +80,24 @@ class SidebarView:
         y += field_height + 10
         
         # Apply button
-        y += section_gap * 2
+        y += section_gap
         self.apply_button_rect = pygame.Rect(left_x, y, field_width, field_height * 1.5)
         
-        # Simulation controls section
-        y += field_height * 1.5 + section_gap
+        # Bottom half - Simulation Controls section
+        # -----------------------------------------------------
+        y = separator_y + 30
+        
+        # Simulation section title
         self.simulation_label = (left_x, y)
+        y += 30
+        
+        # AI Player dropdown
+        self.ai_player_label = (left_x, y)
         y += 25
+        ai_player_rect = pygame.Rect(left_x, y, field_width, field_height)
+        self.ai_player_dropdown = DropdownMenu(ai_player_rect, [])  # Will be populated later
+        self.dropdown_menus.append(self.ai_player_dropdown)
+        y += field_height + 10
         
         # Steps per second input
         self.steps_per_second_label = (left_x, y)
@@ -112,11 +134,32 @@ class SidebarView:
         self.threshold2_score_field.value = str(threshold2_score)
         self.threshold2_weights_field.value = threshold2_weights
     
+    def update_ai_player_dropdown(self, ai_players):
+        """Update the AI player dropdown with available AI players.
+        
+        Args:
+            ai_players: List of (name, description) tuples for available AI players
+        """
+        self.ai_player_dropdown.options = ai_players
+        
+        # Reset selected index to 0 if needed
+        if not self.ai_player_dropdown.options:
+            self.ai_player_dropdown.selected_index = 0
+    
     def draw(self, surface, simulation_running, current_run, simulation_runs):
         # Draw sidebar background
         sidebar_rect = pygame.Rect(0, 0, 260, self.window_size[1])
         pygame.draw.rect(surface, LIGHT_GRAY, sidebar_rect)
         pygame.draw.line(surface, BLACK, (260, 0), (260, self.window_size[1]), 1)
+        
+        # Draw separator between DDA and Simulation sections
+        half_height = self.window_size[1] // 2
+        separator_y = half_height - 10
+        pygame.draw.line(surface, DARK_GRAY, (10, separator_y), (250, separator_y), 2)
+        
+        # Draw DDA section title
+        dda_title = self.font.render("Dynamic Difficulty Adjustment", True, BLACK)
+        surface.blit(dda_title, self.dda_section_title)
         
         # Draw initial weights label
         label = self.font.render("Initial Shape Weights (0-10):", True, BLACK)
@@ -145,6 +188,10 @@ class SidebarView:
         for field in self.input_fields:
             field.draw(surface, self.font)
         
+        # Draw dropdown menus
+        for dropdown in self.dropdown_menus:
+            dropdown.draw(surface, self.font)
+        
         # Draw apply button
         if self.apply_button_rect:
             pygame.draw.rect(surface, GREEN, self.apply_button_rect)
@@ -154,9 +201,13 @@ class SidebarView:
             text_rect = apply_text.get_rect(center=self.apply_button_rect.center)
             surface.blit(apply_text, text_rect)
         
-        # Draw simulation section label
-        simulation_label = self.font.render("Simulation Controls:", True, BLACK)
-        surface.blit(simulation_label, self.simulation_label)
+        # Draw simulation section title
+        simulation_title = self.font.render("Simulation Controls", True, BLACK)
+        surface.blit(simulation_title, self.simulation_label)
+        
+        # Draw AI player dropdown label
+        ai_player_label = self.font.render("AI Player:", True, DARK_GRAY)
+        surface.blit(ai_player_label, self.ai_player_label)
         
         # Draw steps per second label
         steps_label = self.font.render("Steps per second:", True, DARK_GRAY)
@@ -193,6 +244,10 @@ class SidebarView:
         # Handle input field events
         for field in self.input_fields:
             field.handle_event(event)
+        
+        # Handle dropdown menu events
+        for dropdown in self.dropdown_menus:
+            dropdown.handle_event(event)
         
         # Return clicked button or None
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -248,14 +303,12 @@ class SidebarView:
     def get_simulation_values(self):
         try:
             steps_per_second = float(self.steps_per_second_field.value)
-            simulation_runs = int(self.runs_field.value)
+            runs = int(self.runs_field.value)
             
-            if steps_per_second <= 0:
-                steps_per_second = 1.0
+            # Get selected AI player
+            ai_player_name = self.ai_player_dropdown.selected_value if self.ai_player_dropdown.options else None
             
-            if simulation_runs <= 0:
-                simulation_runs = 1
-            
-            return steps_per_second, simulation_runs
-        except ValueError:
-            return 1.0, 1 
+            return steps_per_second, runs, ai_player_name
+        except ValueError as e:
+            print(f"Simulation value error: {e}")
+            return None 

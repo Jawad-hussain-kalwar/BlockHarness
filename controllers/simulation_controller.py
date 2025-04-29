@@ -6,6 +6,7 @@ from typing import Dict, Tuple
 from controllers.game_controller import GameController 
 from controllers.ai_controller import AIController
 from ui.colours import WHITE
+from ai.registry import registry
 
 
 class SimulationController(GameController):
@@ -23,6 +24,9 @@ class SimulationController(GameController):
         self.steps_per_second = 1.0
         self.last_simulation_step = 0
         self.simulation_stats = []
+        
+        # Initialize the AI player dropdown with available AI players
+        self.sidebar_view.update_ai_player_dropdown(self.get_available_ai_players())
     
     def restart_simulation(self):
         """Restart the game but preserve simulation state variables"""
@@ -39,16 +43,22 @@ class SimulationController(GameController):
         """Start the AI simulation at the specified steps per second"""
         if not self.simulation_running:
             # Get simulation parameters from sidebar
-            self.steps_per_second, self.simulation_runs = self.sidebar_view.get_simulation_values()
-            
-            self.simulation_running = True
-            self.current_run = 0
-            self.last_simulation_step = time.time()
-            self.simulation_stats = []
-            
-            # If game was over, restart first run
-            if self.engine.game_over:
-                self.restart_simulation()
+            simulation_values = self.sidebar_view.get_simulation_values()
+            if simulation_values:
+                self.steps_per_second, self.simulation_runs, ai_player_name = simulation_values
+                
+                # Set the AI player if one was selected
+                if ai_player_name:
+                    self.ai_controller.set_ai_player(ai_player_name)
+                
+                self.simulation_running = True
+                self.current_run = 0
+                self.last_simulation_step = time.time()
+                self.simulation_stats = []
+                
+                # If game was over, restart first run
+                if self.engine.game_over:
+                    self.restart_simulation()
     
     def abort_simulation(self):
         """Stop the AI simulation and allow manual play"""
@@ -69,9 +79,18 @@ class SimulationController(GameController):
         stats = {
             'score': run_stats['score'],
             'lines': run_stats['lines'],
-            'blocks_placed': run_stats['blocks_placed']
+            'blocks_placed': run_stats['blocks_placed'],
+            'ai_player': self.ai_controller.get_ai_player_name()
         }
         self.stats_manager.save_stats(stats)
+    
+    def get_available_ai_players(self):
+        """Get a list of available AI players.
+        
+        Returns:
+            A list of (value, display_text) tuples for use in a dropdown menu
+        """
+        return registry.get_available_players()
     
     def _handle_simulation_sidebar_actions(self, action: str) -> None:
         """Handle simulation-specific sidebar actions."""

@@ -1,11 +1,20 @@
 # ai/Greedy1.py
-from typing import Tuple, Optional, Set
+from typing import Tuple, Optional
 
 from engine.game_engine import GameEngine
+from ai.base_player import BaseAIPlayer
 
 
-class AIPlayer:
+class GreedyAIPlayer(BaseAIPlayer):
     """Greedy heuristic: choose move that clears most lines now."""
+    
+    @property
+    def name(self) -> str:
+        return "Greedy"
+    
+    @property
+    def description(self) -> str:
+        return "Chooses moves that clear the most lines immediately."
 
     def choose_move(self, engine: GameEngine, block_index: int, rotation: int) -> Optional[Tuple[int, int]]:
         """Choose the best placement for a block.
@@ -53,3 +62,7 @@ class AIPlayer:
                 best_move = (r, c)
                 
         return best_move
+
+
+# For backwards compatibility - this will maintain compatibility with existing code
+AIPlayer = GreedyAIPlayer

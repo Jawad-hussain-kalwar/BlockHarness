@@ -2,20 +2,55 @@
 from typing import Dict, Optional, Tuple
 
 from controllers.base_controller import BaseController
-from ai.Greedy1 import AIPlayer
+from ai.base_player import BaseAIPlayer
+from ai.registry import registry
 
 
 class AIController(BaseController):
     """Controller that uses an AI player to make gameplay decisions."""
     
-    def __init__(self, config: Dict):
+    def __init__(self, config: Dict, ai_player_name: Optional[str] = None):
         """Initialize the AI controller with the provided configuration.
         
         Args:
             config: Game configuration dictionary
+            ai_player_name: Optional name of the AI player to use. If None, uses the default Greedy AI.
         """
         super().__init__(config)
-        self.ai_player = AIPlayer()
+        
+        # Use the specified AI player, or fall back to Greedy
+        if ai_player_name:
+            try:
+                self.ai_player = registry.create_player(ai_player_name)
+            except KeyError:
+                print(f"AI player '{ai_player_name}' not found, falling back to Greedy")
+                self.ai_player = registry.create_player("Greedy")
+        else:
+            self.ai_player = registry.create_player("Greedy")
+    
+    def set_ai_player(self, ai_player_name: str) -> bool:
+        """Set the AI player to use.
+        
+        Args:
+            ai_player_name: Name of the AI player to use
+            
+        Returns:
+            True if the AI player was set successfully, False otherwise
+        """
+        try:
+            self.ai_player = registry.create_player(ai_player_name)
+            return True
+        except KeyError:
+            print(f"AI player '{ai_player_name}' not found")
+            return False
+    
+    def get_ai_player_name(self) -> str:
+        """Get the name of the current AI player.
+        
+        Returns:
+            The name of the current AI player
+        """
+        return self.ai_player.name
     
     def step(self) -> bool:
         """Perform a single AI-driven game step.
