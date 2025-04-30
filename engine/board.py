@@ -1,5 +1,6 @@
-
 # engine/board.py
+from typing import Set, Tuple, List
+
 class Board:
     """8×8 grid that supports placement and line clears."""
 
@@ -27,22 +28,52 @@ class Board:
 
     # ───────────────────────────── line clears ─────────────────────────────
 
-    def clear_full_lines(self) -> int:
-        """Clear any full rows/cols; return number of lines removed."""
-        cleared = 0
-
-        # full rows
+    def find_full_lines(self) -> Set[Tuple[int, int]]:
+        """Find all cells that are part of full rows or columns.
+        
+        Returns:
+            Set of (row, col) tuples that are part of full lines.
+        """
+        cells_to_clear = set()
+        
+        # Find full rows
         for r in range(self.rows):
             if all(self.grid[r][c] for c in range(self.cols)):
                 for c in range(self.cols):
-                    self.grid[r][c] = 0
-                cleared += 1
-
-        # full cols
+                    cells_to_clear.add((r, c))
+        
+        # Find full cols
         for c in range(self.cols):
             if all(self.grid[r][c] for r in range(self.rows)):
                 for r in range(self.rows):
-                    self.grid[r][c] = 0
-                cleared += 1
+                    cells_to_clear.add((r, c))
+                    
+        return cells_to_clear
+    
+    def clear_cells(self, cells: Set[Tuple[int, int]]) -> None:
+        """Clear specific cells from the grid.
+        
+        Args:
+            cells: Set of (row, col) tuples to clear
+        """
+        for r, c in cells:
+            if 0 <= r < self.rows and 0 <= c < self.cols:
+                self.grid[r][c] = 0
 
-        return cleared
+    def clear_full_lines(self) -> int:
+        """Clear any full rows/cols; return number of lines removed."""
+        cells_to_clear = self.find_full_lines()
+        
+        # Count lines (rows + columns)
+        cleared_rows = set()
+        cleared_cols = set()
+        
+        for r, c in cells_to_clear:
+            cleared_rows.add(r)
+            cleared_cols.add(c)
+        
+        # Clear cells
+        self.clear_cells(cells_to_clear)
+        
+        # Return total number of lines cleared
+        return len(cleared_rows) + len(cleared_cols)

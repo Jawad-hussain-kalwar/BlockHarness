@@ -1,6 +1,7 @@
 # ui/input_field.py
 import pygame
-from ui.colours import WHITE, BLACK, LIGHT_GRAY
+from ui.colours import INPUT_BG, INPUT_BORDER, INPUT_FOCUS, BLACK
+from ui.layout import BORDER_RADIUS
 
 # Input field states
 class InputField:
@@ -27,9 +28,12 @@ class InputField:
                     self.value += event.unicode
     
     def draw(self, surface, font):
-        color = WHITE if self.active else LIGHT_GRAY
-        pygame.draw.rect(surface, color, self.rect)
-        pygame.draw.rect(surface, BLACK, self.rect, 1)
+        # Use proper background color based on state
+        bg_color = INPUT_FOCUS if self.active else INPUT_BG
+        
+        # Draw with rounded corners
+        pygame.draw.rect(surface, bg_color, self.rect, border_radius=BORDER_RADIUS)
+        pygame.draw.rect(surface, INPUT_BORDER, self.rect, width=1, border_radius=BORDER_RADIUS)
         
         text_surf = font.render(self.value, True, BLACK)
         text_rect = text_surf.get_rect(midleft=(self.rect.x + 5, self.rect.centery))

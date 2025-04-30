@@ -1,0 +1,9 @@
+# ui/layout.py
+
+SIDEBAR_WIDTH      = 280  # Increased from 260
+SIDEBAR_PADDING    = 16
+FIELD_HEIGHT       = 32
+FIELD_SPACING      = 10
+SECTION_SPACING    = 24
+LABEL_SPACING      = 8
+BORDER_RADIUS      = 4

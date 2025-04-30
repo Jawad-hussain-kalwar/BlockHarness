@@ -23,8 +23,18 @@ class BaseController:
             preserve_config: If True, keep the current configuration
                             If False, also reset config (not implemented yet)
         """
+        # Preserve animation duration if engine exists
+        animation_duration_ms = None
+        if hasattr(self, 'engine'):
+            animation_duration_ms = self.engine.animation_duration_ms
+            
         # Re-create the game engine from config
         self.engine = GameEngine(self.config)
+        
+        # Restore animation duration if it was saved
+        if animation_duration_ms is not None:
+            self.engine.animation_duration_ms = animation_duration_ms
+            
         # BaseController has no other flags to reset
     
     def restart_game(self):

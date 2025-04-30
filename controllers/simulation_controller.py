@@ -25,6 +25,9 @@ class SimulationController(GameController):
         self.last_simulation_step = 0
         self.simulation_stats = []
         
+        # Store the default animation duration
+        self.default_animation_duration = self.engine.animation_duration_ms
+        
         # Initialize the AI player dropdown with available AI players
         self.sidebar_view.update_ai_player_dropdown(self.get_available_ai_players())
     
@@ -33,8 +36,14 @@ class SimulationController(GameController):
         # Reset AI controller
         self.ai_controller.reset_engine()
         
+        # Ensure AI controller's engine has animation duration set to 0
+        self.ai_controller.engine.animation_duration_ms = 0
+        
         # Reset game controller engine
         self.reset_engine(preserve_config=True)
+        
+        # Disable animations for simulation runs
+        self.engine.animation_duration_ms = 0
         
         # Sync the engines (they should be identical)
         print(f"Restarting simulation run {self.current_run + 1}/{self.simulation_runs}")
@@ -56,6 +65,11 @@ class SimulationController(GameController):
                 self.last_simulation_step = time.time()
                 self.simulation_stats = []
                 
+                # Set animation duration to 0 for instant line clears in simulation mode
+                self.engine.animation_duration_ms = 0
+                # Also set it in the AI controller's engine
+                self.ai_controller.engine.animation_duration_ms = 0
+                
                 # If game was over, restart first run
                 if self.engine.game_over:
                     self.restart_simulation()
@@ -64,16 +78,30 @@ class SimulationController(GameController):
         """Stop the AI simulation and allow manual play"""
         self.simulation_running = False
         self.current_run = 0  # Reset run count when aborting simulation
+        
+        # Restore normal animation duration when exiting simulation mode
+        self.engine.animation_duration_ms = self.default_animation_duration
     
     def run_simulation_step(self):
         """Execute one AI step in the simulation"""
+        # Make sure AI engine has animation duration set to 0
+        self.ai_controller.engine.animation_duration_ms = 0
+        
         # Use AI controller to make a move
         step_result = self.ai_controller.step()
         
         # Sync game state to our display engine
         if step_result:
+            # Ensure existing animations are completed first
+            if self.engine.is_animating():
+                self.engine.update_animations()
+                
             # Copy the game state from the AI engine to our display engine
             self.engine = self.ai_controller.engine
+            
+            # Ensure animation duration is set to 0 in the copied engine
+            self.engine.animation_duration_ms = 0
+            print(f"Applied AI step - engine animation duration: {self.engine.animation_duration_ms}")
     
     def save_simulation_stats(self, run_stats: Dict) -> None:
         """Save simulation run statistics to CSV."""
@@ -99,6 +127,8 @@ class SimulationController(GameController):
             self.apply_config_changes()
             # Also update AI controller config
             self.ai_controller.update_config(self.config)
+            # Store updated animation duration if it has changed
+            self.default_animation_duration = self.engine.animation_duration_ms
         elif action == "simulate":
             self.start_simulation()
         elif action == "abort":
@@ -171,6 +201,13 @@ class SimulationController(GameController):
         
         # Run simulation step if active
         if self.simulation_running:
+            # First, make sure any pending animations complete (should be instant with duration=0)
+            if self.engine.is_animating():
+                # Print animation state for debugging
+                print(f"Animation in progress: duration={self.engine.animation_duration_ms}, " +
+                     f"count={len(self.engine.animation_manager.animations)}")
+                self.engine.update_animations()
+            
             if self.ai_controller.engine.game_over:
                 # Collect stats for this run
                 run_stats = self.ai_controller.get_game_state()
@@ -186,6 +223,8 @@ class SimulationController(GameController):
                 else:
                     self.simulation_running = False
                     self.current_run = 0  # Reset run count when simulation completes
+                    # Restore normal animation duration
+                    self.engine.animation_duration_ms = self.default_animation_duration
                     # TODO: Display simulation results
                     print(f"Completed {self.simulation_runs} simulation runs")
                     for i, stats in enumerate(self.simulation_stats):

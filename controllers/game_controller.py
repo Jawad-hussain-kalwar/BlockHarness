@@ -10,6 +10,8 @@ from ui.views.sidebar_view import SidebarView
 from ui.views.hud_view import HudView
 from ui.views.overlay_view import OverlayView
 from ui.colours import WHITE
+from ui.font_manager import font_manager
+from ui.layout import SIDEBAR_WIDTH
 from data.stats_manager import StatsManager
 
 
@@ -26,15 +28,17 @@ class GameController(BaseController):
         self.window = pygame.display.set_mode(self.window_size, pygame.HWSURFACE)
         pygame.display.set_caption("BlockHarness – Pygame")
         self.clock = pygame.time.Clock()
-        self.font = pygame.font.SysFont('Arial', 18)
-        self.large_font = pygame.font.SysFont('Arial', 36, bold=True)
-        self.small_font = pygame.font.SysFont('Arial', 14)
+        
+        # Load custom fonts
+        self.font = font_manager.get_font('Kanit-Regular', 18)
+        self.large_font = font_manager.get_font('Kanit-Regular', 36)
+        self.small_font = font_manager.get_font('Kanit-Regular', 14)
         
         # Game state
         self.cell_size = 64
         self.preview_cell_size = 32  # Half size for preview blocks
-        self.board_origin = (280, 16)  # Moved right to make space for left sidebar
-        self.preview_origin = (280 + 8 * self.cell_size + 32, 16)
+        self.board_origin = (SIDEBAR_WIDTH + 20, 16)  # Adjust board position based on sidebar width
+        self.preview_origin = (SIDEBAR_WIDTH + 20 + 8 * self.cell_size + 32, 16)
         self.preview_spacing = 160  # Spacing between preview blocks
         
         # Initialize views
@@ -183,6 +187,9 @@ class GameController(BaseController):
         while running:
             # Handle input events
             running = self.handle_events()
+            
+            # Update animations
+            self.engine.update_animations()
             
             # Run any custom step logic if provided
             if custom_step_handler:

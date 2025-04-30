@@ -4,6 +4,7 @@ from typing import Dict, List, Tuple, Optional, Set
 from engine.board import Board
 from engine.block_pool import BlockPool
 from engine.block import Block
+from ui.animation import AnimationManager, FadeoutAnimation
 
 
 class GameEngine:
@@ -27,6 +28,10 @@ class GameEngine:
         self._preview_blocks = []  # List of (block, rotation)
         self._selected_preview_index = None
         self._refill_preview()
+        
+        # Animation management
+        self.animation_manager = AnimationManager()
+        self.animation_duration_ms = 500  # Default animation duration in milliseconds
 
     @staticmethod
     def compute_line_score(lines: int) -> int:
@@ -130,6 +135,10 @@ class GameEngine:
         """
         if self._selected_preview_index is None:
             return False
+        
+        # Don't allow placement while animations are running
+        if self.is_animating():
+            return False
             
         # Get selected block with rotation
         block, rotation = self._preview_blocks[self._selected_preview_index]
@@ -143,14 +152,29 @@ class GameEngine:
         self.board.place_block(rotated_block, row, col)
         self.blocks_placed += 1
         
-        # Clear lines and update score
-        lines = self.board.clear_full_lines()
-        self.lines += lines
+        # Find cells to clear and create animation
+        cells_to_clear = self.board.find_full_lines()
+        line_count = self._count_lines_from_cells(cells_to_clear)
         
-        # Scoring
-        if lines:
-            self.score += self.compute_line_score(lines)
+        # Handle line clearing with animation if lines were cleared
+        if cells_to_clear:
+            if self.animation_duration_ms > 0:
+                # Create fadeout animation for cleared cells
+                self.animation_manager.add_animation(
+                    FadeoutAnimation(cells_to_clear, self.animation_duration_ms)
+                )
+                # Update lines and score
+                self.lines += line_count
+                self.score += self.compute_line_score(line_count)
+            else:
+                # Skip animation when duration is 0 (simulation mode)
+                self.lines += line_count
+                self.score += self.compute_line_score(line_count)
+                # Immediately clear the cells
+                print("Immediately clearing cells - simulation mode")
+                self.board.clear_cells(cells_to_clear)
         else:
+            # No lines to clear, just add 1 point for block placement
             self.score += 1
             
         # Update difficulty if needed
@@ -166,10 +190,54 @@ class GameEngine:
         else:
             self._selected_preview_index = min(self._selected_preview_index, len(self._preview_blocks) - 1)
         
-        # Check for game over
-        self._check_game_over()
+        # Check for game over (if no animations in progress or no duration)
+        if not cells_to_clear or self.animation_duration_ms == 0:
+            self._check_game_over()
         
         return True
+    
+    def update_animations(self) -> None:
+        """Update all running animations and clear lines if animations complete.
+        
+        This should be called each frame to progress animations.
+        """
+        # In simulation mode (duration=0), just perform immediate line clearing
+        if self.animation_duration_ms == 0:
+            # Find cells to clear
+            cells_to_clear = self.board.find_full_lines()
+            if cells_to_clear:
+                # Immediately clear lines without animation
+                self.board.clear_cells(cells_to_clear)
+                # Make sure we check for game over now
+                self._check_game_over()
+            # Clear any existing animations (shouldn't be any, but just in case)
+            self.animation_manager.animations = []
+            return
+            
+        # Store animations count before update to check if any completed
+        had_animations = self.animation_manager.is_animating()
+        
+        # Update animations
+        self.animation_manager.update()
+        
+        # If animations were running but now complete, perform actual line clearing
+        if had_animations and not self.animation_manager.is_animating():
+            # Find cells to clear (again, since board might have changed)
+            cells_to_clear = self.board.find_full_lines()
+            if cells_to_clear:
+                # Now actually clear the lines
+                self.board.clear_cells(cells_to_clear)
+                
+                # Check for game over now that lines are cleared
+                self._check_game_over()
+    
+    def is_animating(self) -> bool:
+        """Check if any animations are currently running."""
+        return self.animation_manager.is_animating()
+    
+    def get_cell_opacity(self, row: int, col: int) -> Optional[float]:
+        """Get the opacity for a cell if it's being animated."""
+        return self.animation_manager.get_cell_opacity(row, col)
     
     def find_next_placeable_block(self) -> Optional[Tuple[int, int]]:
         """Find the next placeable block in the preview.
@@ -207,7 +275,7 @@ class GameEngine:
             self._selected_preview_index = 0
     
     def _has_valid_placement(self, block: Block) -> bool:
-        """Check if a block can be placed anywhere on the board."""
+        """Check if the block can be placed somewhere on the board."""
         for r in range(self.board.rows):
             for c in range(self.board.cols):
                 if self.board.can_place(block, r, c):
@@ -215,30 +283,47 @@ class GameEngine:
         return False
     
     def _check_game_over(self) -> bool:
-        """Check if any block in the preview (in any rotation) can be placed.
+        """Check if the game is over (no valid moves).
         
         Returns:
-            bool: True if game is over (no blocks can be placed), False otherwise
+            bool: True if game is over, False otherwise
         """
-        # If no blocks in preview, game is not over yet
-        if not self._preview_blocks:
-            self._game_over = False
+        # Only check for game over if we have blocks and no animations running
+        if not self._preview_blocks or self.is_animating():
             return False
-        
-        # Check if any block (in any rotation) can be placed
-        for block, _ in self._preview_blocks:
-            for rotation in range(4):
-                rotated_block = block.rotate_clockwise(rotation)
-                if self._has_valid_placement(rotated_block):
-                    self._game_over = False
-                    return False
-        
-        # No block can be placed - game over
-        self._game_over = True
-        return True
+            
+        # Check if any block can be placed
+        placeable = self.find_next_placeable_block()
+        self._game_over = placeable is None
+        return self._game_over
     
+    def _count_lines_from_cells(self, cells: Set[Tuple[int, int]]) -> int:
+        """Count how many lines (rows + columns) are represented by the given cells.
+        
+        Args:
+            cells: Set of (row, col) tuples that are part of cleared lines
+            
+        Returns:
+            int: Number of full lines
+        """
+        if not cells:
+            return 0
+            
+        # Count unique rows and columns represented
+        rows = set()
+        cols = set()
+        for r, c in cells:
+            rows.add(r)
+            cols.add(c)
+            
+        # Check if each row/column is completely full
+        full_rows = sum(1 for r in rows if all(self.board.grid[r][c] for c in range(self.board.cols)))
+        full_cols = sum(1 for c in cols if all(self.board.grid[r][c] for r in range(self.board.rows)))
+        
+        return full_rows + full_cols
+        
     def _maybe_update_difficulty(self):
-        """Update difficulty based on score thresholds."""
+        """Update difficulty based on game progress."""
         for thr, new_weights in self.config.get("difficulty_thresholds", []):
             if self.score >= thr:
                 self.pool.weights = new_weights

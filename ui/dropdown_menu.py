@@ -1,5 +1,10 @@
 import pygame
-from ui.colours import WHITE, BLACK, LIGHT_GRAY, DARK_GRAY
+from ui.colours import (
+    BLACK, WHITE, DARK_GRAY,
+    INPUT_BG, INPUT_BORDER, INPUT_FOCUS,
+    SECTION_BG, SECTION_BORDER
+)
+from ui.layout import BORDER_RADIUS
 
 class DropdownMenu:
     def __init__(self, rect, options, default_index=0):
@@ -149,9 +154,9 @@ class DropdownMenu:
             self.update_dropdown_height()
         
         # Draw the main dropdown button
-        color = WHITE if self.active else LIGHT_GRAY
-        pygame.draw.rect(surface, color, self.rect)
-        pygame.draw.rect(surface, BLACK, self.rect, 1)
+        bg_color = INPUT_FOCUS if self.active else INPUT_BG
+        pygame.draw.rect(surface, bg_color, self.rect, border_radius=BORDER_RADIUS)
+        pygame.draw.rect(surface, INPUT_BORDER, self.rect, width=1, border_radius=BORDER_RADIUS)
         
         # Draw the selected option text (truncated)
         truncated_text = self._truncate_text(self.selected_text, font, self.rect.width - 20)
@@ -171,7 +176,7 @@ class DropdownMenu:
         if self.expanded and self.options:
             # Create a new surface for the dropdown (for z-index control)
             dropdown_surface = pygame.Surface((self.dropdown_rect.width, self.dropdown_rect.height))
-            dropdown_surface.fill(WHITE)  # Fill entire surface with white background
+            dropdown_surface.fill(SECTION_BG)  # Fill entire surface with white background
             
             # Calculate how many options to display
             visible_count = min(len(self.options) - self.scroll_offset, self.max_visible_options)
@@ -190,50 +195,29 @@ class DropdownMenu:
                 
                 # Highlight selected option with light gray
                 if actual_index == self.selected_index:
-                    # Fill with light gray but keep a white margin for clearer separation
+                    # Fill with input focus color but keep a white margin for clearer separation
                     highlight_rect = pygame.Rect(
                         option_rect.x + 2,
                         option_rect.y + 2,
                         option_rect.width - 4,
                         option_rect.height - 4
                     )
-                    pygame.draw.rect(dropdown_surface, LIGHT_GRAY, highlight_rect)
+                    pygame.draw.rect(dropdown_surface, INPUT_FOCUS, highlight_rect, border_radius=BORDER_RADIUS)
                 
-                # Draw option text (truncated) - using title (value) instead of description
-                truncated_text = self._truncate_text(value, font, option_rect.width - 10)
-                text_surf = font.render(truncated_text, True, BLACK)
+                # Draw the option text
+                option_text = self._truncate_text(value, font, option_rect.width - 10)
+                text_surf = font.render(option_text, True, BLACK)
                 text_rect = text_surf.get_rect(midleft=(option_rect.x + 5, option_rect.centery))
                 dropdown_surface.blit(text_surf, text_rect)
-                
-                # Draw separator line between options
-                if i < visible_count - 1:
-                    pygame.draw.line(
-                        dropdown_surface, 
-                        DARK_GRAY, 
-                        (option_rect.left, option_rect.bottom), 
-                        (option_rect.right, option_rect.bottom), 
-                        1
-                    )
-            
-            # Draw scroll indicators if needed
-            if len(self.options) > self.max_visible_options:
-                if self.scroll_offset > 0:  # Can scroll up
-                    pygame.draw.polygon(dropdown_surface, BLACK, [
-                        (self.dropdown_rect.width - 15, 10),
-                        (self.dropdown_rect.width - 5, 10),
-                        (self.dropdown_rect.width - 10, 5)
-                    ])
-                
-                if self.scroll_offset + self.max_visible_options < len(self.options):  # Can scroll down
-                    pygame.draw.polygon(dropdown_surface, BLACK, [
-                        (self.dropdown_rect.width - 15, self.dropdown_rect.height - 10),
-                        (self.dropdown_rect.width - 5, self.dropdown_rect.height - 10),
-                        (self.dropdown_rect.width - 10, self.dropdown_rect.height - 5)
-                    ])
             
             # Draw border on the dropdown surface
-            pygame.draw.rect(dropdown_surface, BLACK, 
-                            pygame.Rect(0, 0, self.dropdown_rect.width, self.dropdown_rect.height), 1)
+            pygame.draw.rect(dropdown_surface, SECTION_BORDER, 
+                            pygame.Rect(0, 0, self.dropdown_rect.width, self.dropdown_rect.height), 
+                            width=1)
             
-            # Blit the dropdown surface onto the main surface - this ensures it's drawn on top
-            surface.blit(dropdown_surface, self.dropdown_rect.topleft) 
+            # Blit the dropdown surface onto the main surface
+            surface.blit(dropdown_surface, self.dropdown_rect)
+            
+            # Draw dropdown border with rounded corners on the main surface
+            # (Need to be drawn on the main surface to get proper z-index and rounded corners)
+            pygame.draw.rect(surface, SECTION_BORDER, self.dropdown_rect, width=1, border_radius=BORDER_RADIUS) 
