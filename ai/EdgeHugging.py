@@ -12,10 +12,6 @@ class EdgeHuggingAIPlayer(BaseAIPlayer):
     def name(self) -> str:
         return "Edge Hugger"
     
-    @property
-    def description(self) -> str:
-        return "Prefers placing blocks along the edges of the board."
-    
     def _calculate_edge_score(self, engine: GameEngine, row: int, col: int, block_index: int, rotation: int) -> int:
         """Calculate a score based on how many cells would be along edges.
         

@@ -5,6 +5,7 @@ from ui.colours import (
     SECTION_BG, SECTION_BORDER
 )
 from ui.layout import BORDER_RADIUS
+from ui.font_manager import font_manager
 
 class DropdownMenu:
     def __init__(self, rect, options, default_index=0):
@@ -30,8 +31,17 @@ class DropdownMenu:
         # Scroll position (if more options than max_visible_options)
         self.scroll_offset = 0
         
+        # Default font
+        self.font = font_manager.get_font('Kanit-Regular', 18)
+        
         # Calculate dropdown height (limited by max_visible_options)
         self.update_dropdown_height()
+    
+    def get_selected_value(self):
+        """Get the value (not display text) of the currently selected option."""
+        if self.options and 0 <= self.selected_index < len(self.options):
+            return self.options[self.selected_index][0]
+        return None
     
     @property
     def selected_value(self):
@@ -142,13 +152,16 @@ class DropdownMenu:
         
         return "..."
     
-    def draw(self, surface, font):
+    def draw(self, surface, font=None):
         """Draw the dropdown menu on the given surface.
         
         Args:
             surface: The pygame surface to draw on
-            font: The pygame font to use for text
+            font: The pygame font to use for text, uses default if None
         """
+        # Use provided font or default font
+        render_font = font or self.font
+        
         # Update dropdown dimensions if needed
         if len(self.options) != 0 and self.dropdown_height != min(len(self.options), self.max_visible_options) * self.option_height:
             self.update_dropdown_height()
@@ -159,8 +172,8 @@ class DropdownMenu:
         pygame.draw.rect(surface, INPUT_BORDER, self.rect, width=1, border_radius=BORDER_RADIUS)
         
         # Draw the selected option text (truncated)
-        truncated_text = self._truncate_text(self.selected_text, font, self.rect.width - 20)
-        text_surf = font.render(truncated_text, True, BLACK)
+        truncated_text = self._truncate_text(self.selected_text, render_font, self.rect.width - 20)
+        text_surf = render_font.render(truncated_text, True, BLACK)
         text_rect = text_surf.get_rect(midleft=(self.rect.x + 5, self.rect.centery))
         surface.blit(text_surf, text_rect)
         
@@ -184,7 +197,7 @@ class DropdownMenu:
             # Draw each visible option on the dropdown surface
             for i in range(visible_count):
                 actual_index = i + self.scroll_offset
-                value, _ = self.options[actual_index]
+                value, display_text = self.options[actual_index]
                 
                 option_rect = pygame.Rect(
                     0,  # Relative to dropdown surface
@@ -202,22 +215,19 @@ class DropdownMenu:
                         option_rect.width - 4,
                         option_rect.height - 4
                     )
-                    pygame.draw.rect(dropdown_surface, INPUT_FOCUS, highlight_rect, border_radius=BORDER_RADIUS)
+                    pygame.draw.rect(dropdown_surface, INPUT_FOCUS, highlight_rect, border_radius=BORDER_RADIUS - 1)
                 
-                # Draw the option text
-                option_text = self._truncate_text(value, font, option_rect.width - 10)
-                text_surf = font.render(option_text, True, BLACK)
-                text_rect = text_surf.get_rect(midleft=(option_rect.x + 5, option_rect.centery))
+                # Draw option text
+                # Use the display_text here rather than the value
+                display_text = display_text or value  # In case display_text is None or empty
+                truncated_text = self._truncate_text(display_text, render_font, self.dropdown_rect.width - 20)
+                text_surf = render_font.render(truncated_text, True, BLACK)
+                text_rect = text_surf.get_rect(midleft=(5, option_rect.centery))
                 dropdown_surface.blit(text_surf, text_rect)
             
-            # Draw border on the dropdown surface
-            pygame.draw.rect(dropdown_surface, SECTION_BORDER, 
-                            pygame.Rect(0, 0, self.dropdown_rect.width, self.dropdown_rect.height), 
-                            width=1)
+            # Draw dropdown border
+            border_rect = pygame.Rect(0, 0, self.dropdown_rect.width, self.dropdown_rect.height)
+            pygame.draw.rect(dropdown_surface, INPUT_BORDER, border_rect, width=1, border_radius=BORDER_RADIUS)
             
-            # Blit the dropdown surface onto the main surface
-            surface.blit(dropdown_surface, self.dropdown_rect)
-            
-            # Draw dropdown border with rounded corners on the main surface
-            # (Need to be drawn on the main surface to get proper z-index and rounded corners)
-            pygame.draw.rect(surface, SECTION_BORDER, self.dropdown_rect, width=1, border_radius=BORDER_RADIUS) 
+            # Add dropdown to main surface
+            surface.blit(dropdown_surface, self.dropdown_rect.topleft) 

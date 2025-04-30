@@ -11,10 +11,6 @@ class GreedyAIPlayer(BaseAIPlayer):
     @property
     def name(self) -> str:
         return "Greedy"
-    
-    @property
-    def description(self) -> str:
-        return "Chooses moves that clear the most lines immediately."
 
     def choose_move(self, engine: GameEngine, block_index: int, rotation: int) -> Optional[Tuple[int, int]]:
         """Choose the best placement for a block.

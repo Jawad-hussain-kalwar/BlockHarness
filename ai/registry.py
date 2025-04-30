@@ -96,7 +96,7 @@ class AIPlayerRegistry:
         players = []
         for name, player_class in self._player_classes.items():
             player = player_class()
-            players.append((name, player.description))
+            players.append((name, player.name))
         
         # Sort by name
         players.sort(key=lambda p: p[0])

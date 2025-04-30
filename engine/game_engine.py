@@ -171,7 +171,7 @@ class GameEngine:
                 self.lines += line_count
                 self.score += self.compute_line_score(line_count)
                 # Immediately clear the cells
-                print("Immediately clearing cells - simulation mode")
+                # print("Immediately clearing cells - simulation mode")
                 self.board.clear_cells(cells_to_clear)
         else:
             # No lines to clear, just add 1 point for block placement

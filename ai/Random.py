@@ -13,10 +13,6 @@ class RandomAIPlayer(BaseAIPlayer):
     def name(self) -> str:
         return "Random"
     
-    @property
-    def description(self) -> str:
-        return "Chooses random valid placements for blocks."
-    
     def choose_move(self, engine: GameEngine, block_index: int, rotation: int) -> Optional[Tuple[int, int]]:
         """Choose a random valid placement for a block.
         

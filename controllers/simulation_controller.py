@@ -6,7 +6,8 @@ from typing import Dict, Tuple
 from controllers.game_controller import GameController 
 from controllers.ai_controller import AIController
 from ui.colours import WHITE
-from ai.registry import registry
+from ai.registry import registry as ai_registry
+from dda.registry import registry as dda_registry
 
 
 class SimulationController(GameController):
@@ -21,7 +22,7 @@ class SimulationController(GameController):
         self.simulation_running = False
         self.simulation_runs = 0
         self.current_run = 0
-        self.steps_per_second = 0
+        self.steps_per_second = 1
         self.last_simulation_step = 0
         self.simulation_stats = []
         
@@ -30,6 +31,9 @@ class SimulationController(GameController):
         
         # Initialize the AI player dropdown with available AI players
         self.sidebar_view.update_ai_player_dropdown(self.get_available_ai_players())
+        
+        # Initialize the DDA algorithm dropdown with available algorithms
+        self.sidebar_view.update_dda_algorithm_dropdown(self.get_available_dda_algorithms())
     
     def restart_simulation(self):
         """Restart the game but preserve simulation state variables"""
@@ -101,7 +105,7 @@ class SimulationController(GameController):
             
             # Ensure animation duration is set to 0 in the copied engine
             self.engine.animation_duration_ms = 0
-            print(f"Applied AI step - engine animation duration: {self.engine.animation_duration_ms}")
+            # print(f"Applied AI step - engine animation duration: {self.engine.animation_duration_ms}")
     
     def save_simulation_stats(self, run_stats: Dict) -> None:
         """Save simulation run statistics to CSV."""
@@ -119,7 +123,30 @@ class SimulationController(GameController):
         Returns:
             A list of (value, display_text) tuples for use in a dropdown menu
         """
-        return registry.get_available_players()
+        return ai_registry.get_available_players()
+    
+    def get_available_dda_algorithms(self):
+        """Get a list of available DDA algorithms.
+        
+        Returns:
+            A list of (value, display_text) tuples for use in a dropdown menu
+        """
+        return dda_registry.get_available_algorithms()
+    
+    def apply_config_changes(self):
+        """Apply configuration changes from the sidebar."""
+        # Get config values from sidebar
+        new_config = self.sidebar_view.get_config_values()
+        if new_config:
+            # Update config
+            self.config.update(new_config)
+            
+            # Update engine config
+            self.reset_engine(preserve_config=True)
+            
+            print("Applied configuration changes")
+            return True
+        return False
     
     def _handle_simulation_sidebar_actions(self, action: str) -> None:
         """Handle simulation-specific sidebar actions."""
