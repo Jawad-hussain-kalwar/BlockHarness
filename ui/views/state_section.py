@@ -1,11 +1,13 @@
 # ui/views/state_section.py
 import pygame
 from ui.colours import (
-    SIDEBAR_BG, SECTION_BG, SECTION_BORDER, TEXT_PRIMARY
+    SECTION_BG, SECTION_BG, SECTION_BORDER, TEXT_PRIMARY
 )
 from ui.layout import (
+    PADDING, DDA_WIDTH, SIM_WIDTH, GAME_WIDTH, STATE_WIDTH, SECTION_HEIGHT,
     SIDEBAR_WIDTH, SIDEBAR_PADDING, BORDER_RADIUS
 )
+from ui.debug import draw_debug_rect
 
 class StateSection:
     """View for the Game State section that displays game state information."""
@@ -15,9 +17,10 @@ class StateSection:
         self.font = font
         self.small_font = small_font
         
-        # Calculate right sidebar position (on the right edge of the window)
-        self.sidebar_width = SIDEBAR_WIDTH
-        self.sidebar_x = window_size[0] - self.sidebar_width
+        # Initialize section rectangle with new layout constants
+        x_origin = PADDING + DDA_WIDTH + PADDING + SIM_WIDTH + PADDING + GAME_WIDTH + PADDING
+        y_origin = PADDING
+        self.rect = pygame.Rect(x_origin, y_origin, STATE_WIDTH, SECTION_HEIGHT)
     
     def draw(self, surface, engine):
         """Draw the Game State section.
@@ -26,24 +29,17 @@ class StateSection:
             surface: Pygame surface to draw on
             engine: Game engine instance
         """
-        # Draw right sidebar background
-        sidebar_rect = pygame.Rect(self.sidebar_x, 0, self.sidebar_width, self.window_size[1])
-        pygame.draw.rect(surface, SIDEBAR_BG, sidebar_rect)
+        # Draw section background
+        pygame.draw.rect(surface, SECTION_BG, self.rect, border_radius=BORDER_RADIUS)
+        pygame.draw.rect(surface, SECTION_BORDER, self.rect, width=1, border_radius=BORDER_RADIUS)
         
-        # Draw section panel with rounded corners
-        section_rect = pygame.Rect(
-            self.sidebar_x + SIDEBAR_PADDING // 2, 
-            SIDEBAR_PADDING // 2, 
-            self.sidebar_width - SIDEBAR_PADDING, 
-            self.window_size[1] - SIDEBAR_PADDING
-        )
-        pygame.draw.rect(surface, SECTION_BG, section_rect, border_radius=BORDER_RADIUS)
-        pygame.draw.rect(surface, SECTION_BORDER, section_rect, width=1, border_radius=BORDER_RADIUS)
+        # Draw debug border if enabled
+        draw_debug_rect(surface, self.rect, "state")
         
         # Draw section title
         title = self.font.render("Game State", True, TEXT_PRIMARY)
-        title_x = self.sidebar_x + SIDEBAR_PADDING
-        title_y = SIDEBAR_PADDING
+        title_x = self.rect.x + PADDING
+        title_y = self.rect.y + PADDING
         surface.blit(title, (title_x, title_y))
         
         # This section is empty for now as specified in the approved plan

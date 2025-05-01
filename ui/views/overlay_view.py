@@ -1,6 +1,6 @@
 # ui/views/overlay_view.py
 import pygame
-from ui.colours import WHITE, OVERLAY, GREEN
+from ui.colours import BG_COLOR, OVERLAY, GREEN
 
 class OverlayView:
     def __init__(self, window_size, large_font, font):
@@ -22,7 +22,7 @@ class OverlayView:
         surface.blit(overlay, (0, 0))
         
         # Draw game over text
-        game_over_text = self.large_font.render("GAME OVER", True, WHITE)
+        game_over_text = self.large_font.render("GAME OVER", True, BG_COLOR)
         text_x = (self.window_size[0] - game_over_text.get_width()) // 2
         text_y = (self.window_size[1] - game_over_text.get_height()) // 2 - 100
         surface.blit(game_over_text, (text_x, text_y))
@@ -39,7 +39,7 @@ class OverlayView:
             ]
             
             for i, stat in enumerate(stats):
-                stat_text = self.font.render(stat, True, WHITE)
+                stat_text = self.font.render(stat, True, BG_COLOR)
                 stat_x = (self.window_size[0] - stat_text.get_width()) // 2
                 surface.blit(stat_text, (stat_x, stats_y + i * 30))
         
@@ -56,12 +56,12 @@ class OverlayView:
         pygame.draw.rect(surface, button_color, self.restart_button_rect, border_radius=5)
         
         # Draw button text
-        restart_button_text = self.font.render("Restart Game", True, WHITE)
+        restart_button_text = self.font.render("Restart Game", True, BG_COLOR)
         text_rect = restart_button_text.get_rect(center=self.restart_button_rect.center)
         surface.blit(restart_button_text, text_rect)
         
         # Draw key instruction
-        restart_text = self.font.render("Press ENTER to restart", True, WHITE)
+        restart_text = self.font.render("Press ENTER to restart", True, BG_COLOR)
         restart_x = (self.window_size[0] - restart_text.get_width()) // 2
         surface.blit(restart_text, (restart_x, button_y + self.button_height + 20))
         

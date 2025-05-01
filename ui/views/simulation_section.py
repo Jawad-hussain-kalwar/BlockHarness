@@ -1,15 +1,18 @@
 import pygame
 from ui.colours import (
     TEXT_PRIMARY,
-    BUTTON_PRIMARY_BG, BUTTON_PRIMARY_TEXT,
-    BUTTON_SECONDARY_BG, BUTTON_SECONDARY_TEXT,
-    BUTTON_BORDER
+    BUTTON_PRIMARY_BG, TEXT_PRIMARY,
+    BUTTON_RED_BG, BUTTON_SECONDARY_BG, BUTTON_SECONDARY_TEXT,
+    BUTTON_BORDER,
+    SECTION_BG, SECTION_BORDER
 )
 from ui.layout import (
-    FIELD_HEIGHT, FIELD_SPACING, BORDER_RADIUS, SECTION_WIDTH
+    PADDING, DDA_WIDTH, SIM_WIDTH, SECTION_HEIGHT,
+    FIELD_HEIGHT, FIELD_SPACING, BORDER_RADIUS
 )
 from ui.input_field import InputField
 from ui.dropdown_menu import DropdownMenu
+from ui.debug import draw_debug_rect
 
 
 class SimulationSection:
@@ -18,6 +21,16 @@ class SimulationSection:
         self.small_font = small_font
         self.input_fields = []
         self.dropdown_menus = []
+        
+        # Initialize section rectangle with new layout constants
+        x_origin = PADDING + DDA_WIDTH + PADDING
+        y_origin = PADDING
+        self.rect = pygame.Rect(x_origin, y_origin, SIM_WIDTH, SECTION_HEIGHT)
+        
+        # Use self.rect for positioning instead of passed parameters
+        left_x = self.rect.x + PADDING
+        top_y = self.rect.y + PADDING
+        field_width = SIM_WIDTH - 2 * PADDING
         
         # Initialize positions and UI elements
         y = top_y
@@ -69,6 +82,12 @@ class SimulationSection:
 
     def draw(self, surface, simulation_running, current_run, simulation_runs):
         """Draw the simulation section elements."""
+        # Draw section panel background and border
+        pygame.draw.rect(surface, SECTION_BG, self.rect, border_radius=BORDER_RADIUS)
+        pygame.draw.rect(surface, SECTION_BORDER, self.rect, width=1, border_radius=BORDER_RADIUS)
+        # Draw debug border if enabled
+        draw_debug_rect(surface, self.rect, "simulation")
+        
         # Draw simulation section title
         sim_title = self.font.render("Simulation Controls", True, TEXT_PRIMARY)
         surface.blit(sim_title, self.simulation_label)
@@ -105,17 +124,17 @@ class SimulationSection:
         pygame.draw.rect(surface, BUTTON_BORDER, self.simulate_button_rect, width=1, border_radius=BORDER_RADIUS)
         
         if not simulation_running:
-            sim_text = self.font.render("Start", True, BUTTON_PRIMARY_TEXT)
+            sim_text = self.font.render("Start", True, TEXT_PRIMARY)
         else:
             # Show progress if simulation is running
-            sim_text = self.small_font.render(f"Run {current_run}/{simulation_runs}", True, BUTTON_PRIMARY_TEXT)
+            sim_text = self.small_font.render(f"Run {current_run}/{simulation_runs}", True, TEXT_PRIMARY)
         
         text_x = self.simulate_button_rect.x + self.simulate_button_rect.width // 2 - sim_text.get_width() // 2
         text_y = self.simulate_button_rect.y + self.simulate_button_rect.height // 2 - sim_text.get_height() // 2
         surface.blit(sim_text, (text_x, text_y))
         
         # Always draw abort button (enabled only when simulation is running)
-        button_color = BUTTON_SECONDARY_BG if simulation_running else (200, 200, 200)  # Grayed out when not running
+        button_color = BUTTON_RED_BG if simulation_running else BUTTON_SECONDARY_BG  # Grayed out when not running
         pygame.draw.rect(surface, button_color, self.abort_button_rect, border_radius=BORDER_RADIUS)
         pygame.draw.rect(surface, BUTTON_BORDER, self.abort_button_rect, width=1, border_radius=BORDER_RADIUS)
         

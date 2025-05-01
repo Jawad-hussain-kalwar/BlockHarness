@@ -1,6 +1,6 @@
 import pygame
 from ui.colours import (
-    BLACK, WHITE, DARK_GRAY,
+    FG_COLOR, BG_COLOR, DARK_GRAY,
     INPUT_BG, INPUT_BORDER, INPUT_FOCUS,
     SECTION_BG, SECTION_BORDER
 )
@@ -173,7 +173,7 @@ class DropdownMenu:
         
         # Draw the selected option text (truncated)
         truncated_text = self._truncate_text(self.selected_text, render_font, self.rect.width - 20)
-        text_surf = render_font.render(truncated_text, True, BLACK)
+        text_surf = render_font.render(truncated_text, True, FG_COLOR)
         text_rect = text_surf.get_rect(midleft=(self.rect.x + 5, self.rect.centery))
         surface.blit(text_surf, text_rect)
         
@@ -183,7 +183,7 @@ class DropdownMenu:
             (self.rect.right - 5, self.rect.centery - 3),
             (self.rect.right - 10, self.rect.centery + 5)
         ]
-        pygame.draw.polygon(surface, BLACK, arrow_points)
+        pygame.draw.polygon(surface, FG_COLOR, arrow_points)
         
         # Draw expanded dropdown if active - this should be drawn last to appear on top
         if self.expanded and self.options:
@@ -221,7 +221,7 @@ class DropdownMenu:
                 # Use the display_text here rather than the value
                 display_text = display_text or value  # In case display_text is None or empty
                 truncated_text = self._truncate_text(display_text, render_font, self.dropdown_rect.width - 20)
-                text_surf = render_font.render(truncated_text, True, BLACK)
+                text_surf = render_font.render(truncated_text, True, FG_COLOR)
                 text_rect = text_surf.get_rect(midleft=(5, option_rect.centery))
                 dropdown_surface.blit(text_surf, text_rect)
             

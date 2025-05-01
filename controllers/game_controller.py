@@ -7,8 +7,9 @@ from typing import Dict, Optional, Tuple
 
 from controllers.base_controller import BaseController
 from ui.views.main_view import MainView
-from ui.colours import WHITE
+from ui.colours import BG_COLOR
 from data.stats_manager import StatsManager
+from ui.layout import WINDOW_WIDTH, WINDOW_HEIGHT
 
 from utils.window_metrics import outer_from_client 
 
@@ -30,9 +31,9 @@ class GameController(BaseController):
         pygame.init()
         
         # ------------------------------------------------------------------
-        # Initialise window so that the *client* area is exactly 1920×982
+        # Initialize window with the defined window size constants
         # ------------------------------------------------------------------
-        TARGET_CLIENT = (1920, 982)
+        TARGET_CLIENT = (WINDOW_WIDTH, WINDOW_HEIGHT)
         outer_w, outer_h = outer_from_client(*TARGET_CLIENT)
 
         self.window = pygame.display.set_mode((outer_w, outer_h), pygame.RESIZABLE)

@@ -1,6 +1,6 @@
 # ui/input_field.py
 import pygame
-from ui.colours import INPUT_BG, INPUT_BORDER, INPUT_FOCUS, BLACK
+from ui.colours import INPUT_BG, INPUT_BORDER, INPUT_FOCUS, FG_COLOR
 from ui.layout import BORDER_RADIUS
 from ui.font_manager import font_manager
 
@@ -40,6 +40,6 @@ class InputField:
         pygame.draw.rect(surface, bg_color, self.rect, border_radius=BORDER_RADIUS)
         pygame.draw.rect(surface, INPUT_BORDER, self.rect, width=1, border_radius=BORDER_RADIUS)
         
-        text_surf = render_font.render(self.value, True, BLACK)
+        text_surf = render_font.render(self.value, True, FG_COLOR)
         text_rect = text_surf.get_rect(midleft=(self.rect.x + 5, self.rect.centery))
         surface.blit(text_surf, text_rect) 

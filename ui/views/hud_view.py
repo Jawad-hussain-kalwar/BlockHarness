@@ -1,32 +1,80 @@
 # ui/views/hud_view.py
 import pygame
-from ui.colours import BLACK, DARK_GRAY
+from ui.colours import FG_COLOR, TEXT_SECONDARY, STAT_BOX_BG, STAT_BOX_BORDER
+from ui.layout import PADDING, STATS_HEIGHT, STATS_BOX_WIDTH, STATS_BOX_HEIGHT, HINTS_HEIGHT, HINTS_PADDING
+from ui.debug import draw_debug_rect
 
 class HudView:
-    def __init__(self, preview_origin, preview_spacing, font):
-        self.preview_origin = preview_origin
-        self.preview_spacing = preview_spacing
+    def __init__(self, parent_rect, stats_height, font):
+        self.parent_rect = parent_rect
         self.font = font
+        
+        # Create stat box rectangles
+        self.stat_boxes = []
+        for i in range(3):
+            box_x = parent_rect.x + PADDING + i * (STATS_BOX_WIDTH + PADDING)
+            box_y = parent_rect.y + PADDING
+            self.stat_boxes.append(pygame.Rect(box_x, box_y, STATS_BOX_WIDTH, STATS_BOX_HEIGHT))
     
     def draw(self, surface, engine):
-        # Draw game stats - adjusted positioning based on new preview spacing
-        stats_y = self.preview_origin[1] + 3 * self.preview_spacing + 32
+        # Draw score box
+        score_box = self.stat_boxes[0]
+        pygame.draw.rect(surface, STAT_BOX_BG, score_box)
+        pygame.draw.rect(surface, STAT_BOX_BORDER, score_box, 1)
+        draw_debug_rect(surface, score_box, "stats")
+        score_text = self.font.render("SCORE", True, FG_COLOR)
+        score_value = self.font.render(f"{engine.score}", True, FG_COLOR)
         
-        score_text = self.font.render(f"Score: {engine.score}", True, BLACK)
-        surface.blit(score_text, (self.preview_origin[0], stats_y))
+        # Center text in the box
+        surface.blit(score_text, (
+            score_box.x + (score_box.width - score_text.get_width()) // 2,
+            score_box.y + 10
+        ))
+        surface.blit(score_value, (
+            score_box.x + (score_box.width - score_value.get_width()) // 2,
+            score_box.y + score_box.height - score_value.get_height() - 10
+        ))
         
-        lines_text = self.font.render(f"Lines: {engine.lines}", True, BLACK)
-        surface.blit(lines_text, (self.preview_origin[0], stats_y + 24))
+        # Draw lines box
+        lines_box = self.stat_boxes[1]
+        pygame.draw.rect(surface, STAT_BOX_BG, lines_box)
+        pygame.draw.rect(surface, STAT_BOX_BORDER, lines_box, 1)
+        draw_debug_rect(surface, lines_box, "stats")
+        lines_text = self.font.render("LINES", True, FG_COLOR)
+        lines_value = self.font.render(f"{engine.lines}", True, FG_COLOR)
         
-        blocks_text = self.font.render(f"Blocks: {engine.blocks_placed}", True, BLACK)
-        surface.blit(blocks_text, (self.preview_origin[0], stats_y + 48))
+        surface.blit(lines_text, (
+            lines_box.x + (lines_box.width - lines_text.get_width()) // 2,
+            lines_box.y + 10
+        ))
+        surface.blit(lines_value, (
+            lines_box.x + (lines_box.width - lines_value.get_width()) // 2,
+            lines_box.y + lines_box.height - lines_value.get_height() - 10
+        ))
+        
+        # Draw blocks box
+        blocks_box = self.stat_boxes[2]
+        pygame.draw.rect(surface, STAT_BOX_BG, blocks_box)
+        pygame.draw.rect(surface, STAT_BOX_BORDER, blocks_box, 1)
+        draw_debug_rect(surface, blocks_box, "stats")
+        blocks_text = self.font.render("BLOCKS", True, FG_COLOR)
+        blocks_value = self.font.render(f"{engine.blocks_placed}", True, FG_COLOR)
+        
+        surface.blit(blocks_text, (
+            blocks_box.x + (blocks_box.width - blocks_text.get_width()) // 2,
+            blocks_box.y + 10
+        ))
+        surface.blit(blocks_value, (
+            blocks_box.x + (blocks_box.width - blocks_value.get_width()) // 2,
+            blocks_box.y + blocks_box.height - blocks_value.get_height() - 10
+        ))
         
         # Draw hint text
-        hint_y = stats_y + 100
-        hint1 = self.font.render("Click preview to select", True, DARK_GRAY)
-        hint2 = self.font.render("R = rotate", True, DARK_GRAY)
-        hint3 = self.font.render("Esc = quit", True, DARK_GRAY)
+        hint_y = self.parent_rect.y + STATS_HEIGHT + (HINTS_HEIGHT - self.font.get_height()) // 2
+        hint1 = self.font.render("Click preview to select", True, TEXT_SECONDARY)
+        hint2 = self.font.render("R = rotate", True, TEXT_SECONDARY)
+        hint3 = self.font.render("Esc = quit", True, TEXT_SECONDARY)
         
-        surface.blit(hint1, (self.preview_origin[0], hint_y))
-        surface.blit(hint2, (self.preview_origin[0], hint_y + 24))
-        surface.blit(hint3, (self.preview_origin[0], hint_y + 48)) 
+        surface.blit(hint1, (self.parent_rect.x + HINTS_PADDING + 100, hint_y))
+        surface.blit(hint2, (self.parent_rect.x + HINTS_PADDING + STATS_BOX_WIDTH + HINTS_PADDING + 100, hint_y))
+        surface.blit(hint3, (self.parent_rect.x + HINTS_PADDING + 2 * (STATS_BOX_WIDTH + HINTS_PADDING), hint_y)) 

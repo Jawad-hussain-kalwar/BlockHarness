@@ -1,6 +1,6 @@
 # ui/views/main_view.py
 import pygame
-from ui.colours import SIDEBAR_BG, SECTION_BG, SECTION_BORDER, WHITE
+from ui.colours import BG_COLOR
 from ui.layout import SIDEBAR_WIDTH, SIDEBAR_PADDING, BORDER_RADIUS, SECTION_WIDTH
 from ui.font_manager import font_manager
 
@@ -60,32 +60,7 @@ class MainView:
     def draw(self, surface, engine, simulation_running=False, current_run=0, simulation_runs=0):
         """Draw all UI sections."""
         # Clear the screen
-        surface.fill(WHITE)
-        
-        # Draw sidebar background
-        sidebar_rect = pygame.Rect(0, 0, SIDEBAR_WIDTH, self.window_size[1])
-        pygame.draw.rect(surface, SIDEBAR_BG, sidebar_rect)
-        
-        # Create section panels with rounded corners
-        # DDA section panel (left)
-        dda_panel_rect = pygame.Rect(
-            SIDEBAR_PADDING // 2, 
-            SIDEBAR_PADDING // 2, 
-            SECTION_WIDTH + SIDEBAR_PADDING,
-            self.window_size[1] - SIDEBAR_PADDING
-        )
-        pygame.draw.rect(surface, SECTION_BG, dda_panel_rect, border_radius=BORDER_RADIUS)
-        pygame.draw.rect(surface, SECTION_BORDER, dda_panel_rect, width=1, border_radius=BORDER_RADIUS)
-        
-        # Simulation controls panel (right)
-        sim_panel_rect = pygame.Rect(
-            SIDEBAR_PADDING * 1.5 + SECTION_WIDTH, 
-            SIDEBAR_PADDING // 2, 
-            SECTION_WIDTH + SIDEBAR_PADDING,
-            self.window_size[1] - SIDEBAR_PADDING
-        )
-        pygame.draw.rect(surface, SECTION_BG, sim_panel_rect, border_radius=BORDER_RADIUS)
-        pygame.draw.rect(surface, SECTION_BORDER, sim_panel_rect, width=1, border_radius=BORDER_RADIUS)
+        surface.fill(BG_COLOR)
         
         # Draw individual sections
         self.dda_section.draw(surface)

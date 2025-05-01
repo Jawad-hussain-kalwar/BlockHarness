@@ -1,15 +1,18 @@
 import pygame
 from ui.colours import (
     TEXT_PRIMARY, TEXT_SECONDARY,
-    BUTTON_PRIMARY_BG, BUTTON_PRIMARY_TEXT,
-    BUTTON_BORDER
+    BUTTON_PRIMARY_BG, TEXT_PRIMARY,
+    BUTTON_BORDER,
+    SECTION_BG, SECTION_BORDER
 )
 from ui.layout import (
-    SIDEBAR_WIDTH, SIDEBAR_PADDING, FIELD_HEIGHT, FIELD_SPACING,
-    SECTION_SPACING, LABEL_SPACING, BORDER_RADIUS, SECTION_WIDTH
+    PADDING, DDA_WIDTH, SECTION_HEIGHT,
+    FIELD_HEIGHT, FIELD_SPACING,
+    LABEL_SPACING, BORDER_RADIUS
 )
 from ui.input_field import InputField
 from ui.dropdown_menu import DropdownMenu
+from ui.debug import draw_debug_rect
 
 
 class DDASection:
@@ -18,6 +21,19 @@ class DDASection:
         self.small_font = small_font
         self.input_fields = []
         self.dropdown_menus = []
+        
+        # Initialize section rectangle with new layout constants
+        self.rect = pygame.Rect(
+            PADDING,
+            PADDING,
+            DDA_WIDTH,
+            SECTION_HEIGHT
+        )
+        
+        # Use self.rect for positioning instead of passed parameters
+        left_x = self.rect.x + PADDING
+        top_y = self.rect.y + PADDING
+        field_width = DDA_WIDTH - 2 * PADDING
         
         # Initialize positions and UI elements
         y = top_y
@@ -118,6 +134,12 @@ class DDASection:
 
     def draw(self, surface):
         """Draw the DDA section elements."""
+        # Draw section panel background and border
+        pygame.draw.rect(surface, SECTION_BG, self.rect, border_radius=BORDER_RADIUS)
+        pygame.draw.rect(surface, SECTION_BORDER, self.rect, width=1, border_radius=BORDER_RADIUS)
+        # Draw debug border if enabled
+        draw_debug_rect(surface, self.rect, "dda")
+        
         # Draw DDA section title
         dda_title = self.font.render("Dynamic Difficulty Adjustment", True, TEXT_PRIMARY)
         surface.blit(dda_title, self.dda_section_title)
@@ -155,7 +177,7 @@ class DDASection:
         # Draw apply button
         pygame.draw.rect(surface, BUTTON_PRIMARY_BG, self.apply_button_rect, border_radius=BORDER_RADIUS)
         pygame.draw.rect(surface, BUTTON_BORDER, self.apply_button_rect, width=1, border_radius=BORDER_RADIUS)
-        apply_text = self.font.render("Apply Changes", True, BUTTON_PRIMARY_TEXT)
+        apply_text = self.font.render("Apply Changes", True, TEXT_PRIMARY)
         text_x = self.apply_button_rect.x + self.apply_button_rect.width // 2 - apply_text.get_width() // 2
         text_y = self.apply_button_rect.y + self.apply_button_rect.height // 2 - apply_text.get_height() // 2
         surface.blit(apply_text, (text_x, text_y))

@@ -5,7 +5,7 @@ from typing import Dict, Tuple
 
 from controllers.game_controller import GameController 
 from controllers.ai_controller import AIController
-from ui.colours import WHITE
+from ui.colours import BG_COLOR
 from ai.registry import registry as ai_registry
 from dda.registry import registry as dda_registry
 

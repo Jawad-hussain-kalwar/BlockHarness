@@ -1,10 +1,15 @@
 # ui/views/game_section.py
 import pygame
-from ui.layout import SIDEBAR_WIDTH
+from ui.layout import (
+    PADDING, DDA_WIDTH, SIM_WIDTH, GAME_WIDTH, SECTION_HEIGHT,
+    STATS_HEIGHT, HINTS_HEIGHT, BOARD_SIZE, BOARD_PADDING_W, PREVIEW_HEIGHT, PREVIEW_BLOCK,
+    PREVIEW_PADDING_H, PREVIEW_PADDING_V, PREVIEW_GAP
+)
 from ui.views.board_view import BoardView
 from ui.views.preview_view import PreviewView
 from ui.views.hud_view import HudView
 from ui.views.overlay_view import OverlayView
+from ui.debug import draw_debug_rect
 
 class GameSection:
     """Game section that consolidates board, preview, and HUD views."""
@@ -14,21 +19,48 @@ class GameSection:
         self.font = font
         self.small_font = small_font
         
-        # Game configuration
-        self.cell_size = 64
-        self.preview_cell_size = 32  # Half size for preview blocks
-        self.board_origin = (SIDEBAR_WIDTH + 20, 16)  # Adjust board position based on sidebar width
-        self.preview_origin = (SIDEBAR_WIDTH + 20 + 8 * self.cell_size + 32, 16)
-        self.preview_spacing = 160  # Spacing between preview blocks
+        # Initialize section rectangle with new layout constants
+        x_origin = PADDING + DDA_WIDTH + PADDING + SIM_WIDTH + PADDING
+        y_origin = PADDING
+        self.rect = pygame.Rect(x_origin, y_origin, GAME_WIDTH, SECTION_HEIGHT)
         
-        # Initialize views
-        self.board_view = BoardView(self.board_origin, self.cell_size)
-        self.preview_view = PreviewView(self.preview_origin, self.preview_cell_size, self.preview_spacing)
-        self.hud_view = HudView(self.preview_origin, self.preview_spacing, self.font)
+        # Calculate cell sizes based on board_size
+        self.cell_size = BOARD_SIZE // 8  # For a 10x10 board
+        self.preview_cell_size = PREVIEW_BLOCK // 5  # For 5x5 preview blocks
+        
+        # Initialize views with new positioning
+        self.board_view = BoardView(
+            (self.rect.x + BOARD_PADDING_W, self.rect.y + STATS_HEIGHT + HINTS_HEIGHT),
+            self.cell_size,
+            board_size=BOARD_SIZE
+        )
+        
+        # Preview view starting position is below the board
+        preview_x = self.rect.x
+        preview_y = self.rect.y + STATS_HEIGHT + HINTS_HEIGHT + BOARD_SIZE
+        self.preview_view = PreviewView(
+            (preview_x, preview_y),
+            self.preview_cell_size,
+            PREVIEW_BLOCK,
+            PREVIEW_PADDING_H,
+            PREVIEW_PADDING_V,
+            PREVIEW_GAP
+        )
+        
+        # HUD view at the top of the game section
+        self.hud_view = HudView(
+            self.rect,
+            STATS_HEIGHT,
+            self.font
+        )
+        
         self.overlay_view = OverlayView(self.window_size, font, small_font)
     
     def draw(self, surface, engine):
         """Draw all game section components."""
+        # Draw debug border if enabled
+        draw_debug_rect(surface, self.rect, "game")
+        
         # Draw board
         self.board_view.draw(surface, engine)
         
@@ -58,12 +90,12 @@ class GameSection:
         """
         board_width = 8 * self.cell_size
         board_height = 8 * self.cell_size
-        board_rect = pygame.Rect(self.board_origin[0], self.board_origin[1], board_width, board_height)
+        board_rect = pygame.Rect(self.rect.x + BOARD_PADDING_W, self.rect.y + STATS_HEIGHT + HINTS_HEIGHT, board_width, board_height)
         
         if board_rect.collidepoint(x, y):
             # Calculate grid position
-            grid_x = (x - self.board_origin[0]) // self.cell_size
-            grid_y = (y - self.board_origin[1]) // self.cell_size
+            grid_x = (x - (self.rect.x + BOARD_PADDING_W)) // self.cell_size
+            grid_y = (y - (self.rect.y + STATS_HEIGHT + HINTS_HEIGHT)) // self.cell_size
             
             # Return the grid position for the controller to handle
             return (grid_y, grid_x)
@@ -80,13 +112,8 @@ class GameSection:
         Returns:
             Integer: Index of clicked preview block, or None if no preview was clicked
         """
-        for i in range(3):  # We display 3 preview blocks
-            preview_rect = pygame.Rect(
-                self.preview_origin[0],
-                self.preview_origin[1] + i * self.preview_spacing,
-                self.preview_cell_size * 4,
-                self.preview_cell_size * 4
-            )
+        # Use the preview_view's rectangles for click detection
+        for i, preview_rect in enumerate(self.preview_view.preview_rects):
             if preview_rect.collidepoint(x, y):
                 return i
                 
