@@ -12,7 +12,7 @@ class InputField:
         self.active = False
         self.max_chars = max_chars
         self.numeric = numeric
-        self.font = font_manager.get_font('Kanit-Regular', 18)  # Default font
+        self.font = font_manager.get_font('Ubuntu-Regular', 18)  # Default font
         
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:

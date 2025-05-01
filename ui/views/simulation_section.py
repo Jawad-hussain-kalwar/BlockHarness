@@ -6,7 +6,7 @@ from ui.colours import (
     BUTTON_BORDER
 )
 from ui.layout import (
-    FIELD_HEIGHT, FIELD_SPACING, BORDER_RADIUS
+    FIELD_HEIGHT, FIELD_SPACING, BORDER_RADIUS, SECTION_WIDTH
 )
 from ui.input_field import InputField
 from ui.dropdown_menu import DropdownMenu
@@ -24,7 +24,7 @@ class SimulationSection:
         
         # Simulation section title
         self.simulation_label = (left_x, y)
-        y += FIELD_HEIGHT
+        y += FIELD_HEIGHT + FIELD_SPACING
         
         # AI Player dropdown
         self.ai_player_label = (left_x, y)
@@ -32,7 +32,7 @@ class SimulationSection:
         ai_player_rect = pygame.Rect(left_x, y, field_width, FIELD_HEIGHT)
         self.ai_player_dropdown = DropdownMenu(ai_player_rect, [])
         self.dropdown_menus.append(self.ai_player_dropdown)
-        y += FIELD_HEIGHT + FIELD_SPACING
+        y += FIELD_HEIGHT + FIELD_SPACING * 2
         
         # Steps per second input
         self.steps_per_second_label = (left_x, y)
@@ -40,7 +40,7 @@ class SimulationSection:
         steps_per_second_rect = pygame.Rect(left_x, y, field_width, FIELD_HEIGHT)
         self.steps_per_second_field = InputField(steps_per_second_rect, "1.0", 5, numeric=True)
         self.input_fields.append(self.steps_per_second_field)
-        y += FIELD_HEIGHT + FIELD_SPACING
+        y += FIELD_HEIGHT + FIELD_SPACING * 2
         
         # Number of runs input
         self.runs_label = (left_x, y)
@@ -48,11 +48,12 @@ class SimulationSection:
         runs_rect = pygame.Rect(left_x, y, field_width, FIELD_HEIGHT)
         self.runs_field = InputField(runs_rect, "1", 3, numeric=True)
         self.input_fields.append(self.runs_field)
-        y += FIELD_HEIGHT + FIELD_SPACING
+        y += FIELD_HEIGHT + FIELD_SPACING * 3
         
         # Simulation buttons
-        self.simulate_button_rect = pygame.Rect(left_x, y, field_width // 2 - 5, FIELD_HEIGHT * 1.5)
-        self.abort_button_rect = pygame.Rect(left_x + field_width // 2 + 5, y, field_width // 2 - 5, FIELD_HEIGHT * 1.5)
+        button_height = FIELD_HEIGHT * 1.5
+        self.simulate_button_rect = pygame.Rect(left_x, y, field_width, button_height)
+        self.abort_button_rect = pygame.Rect(left_x, y + button_height + FIELD_SPACING, field_width, button_height)
 
     def update_ai_player_dropdown(self, ai_players):
         """Update the AI player dropdown with available AI players.
@@ -99,7 +100,7 @@ class SimulationSection:
         for dropdown in self.dropdown_menus:
             dropdown.draw(surface)
         
-        # Draw simulation buttons
+        # Draw start button
         pygame.draw.rect(surface, BUTTON_PRIMARY_BG, self.simulate_button_rect, border_radius=BORDER_RADIUS)
         pygame.draw.rect(surface, BUTTON_BORDER, self.simulate_button_rect, width=1, border_radius=BORDER_RADIUS)
         
@@ -113,14 +114,15 @@ class SimulationSection:
         text_y = self.simulate_button_rect.y + self.simulate_button_rect.height // 2 - sim_text.get_height() // 2
         surface.blit(sim_text, (text_x, text_y))
         
-        # Only draw abort button if simulation is running
-        if simulation_running:
-            pygame.draw.rect(surface, BUTTON_SECONDARY_BG, self.abort_button_rect, border_radius=BORDER_RADIUS)
-            pygame.draw.rect(surface, BUTTON_BORDER, self.abort_button_rect, width=1, border_radius=BORDER_RADIUS)
-            abort_text = self.font.render("Abort", True, BUTTON_SECONDARY_TEXT)
-            text_x = self.abort_button_rect.x + self.abort_button_rect.width // 2 - abort_text.get_width() // 2
-            text_y = self.abort_button_rect.y + self.abort_button_rect.height // 2 - abort_text.get_height() // 2
-            surface.blit(abort_text, (text_x, text_y))
+        # Always draw abort button (enabled only when simulation is running)
+        button_color = BUTTON_SECONDARY_BG if simulation_running else (200, 200, 200)  # Grayed out when not running
+        pygame.draw.rect(surface, button_color, self.abort_button_rect, border_radius=BORDER_RADIUS)
+        pygame.draw.rect(surface, BUTTON_BORDER, self.abort_button_rect, width=1, border_radius=BORDER_RADIUS)
+        
+        abort_text = self.font.render("Abort", True, BUTTON_SECONDARY_TEXT if simulation_running else (150, 150, 150))
+        text_x = self.abort_button_rect.x + self.abort_button_rect.width // 2 - abort_text.get_width() // 2
+        text_y = self.abort_button_rect.y + self.abort_button_rect.height // 2 - abort_text.get_height() // 2
+        surface.blit(abort_text, (text_x, text_y))
 
     def handle_event(self, event):
         """Handle events for the simulation section.

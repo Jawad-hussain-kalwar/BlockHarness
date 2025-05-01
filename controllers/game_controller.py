@@ -1,19 +1,16 @@
 # controllers/game_controller.py
 import pygame
 import time
+import ctypes
+import sys
 from typing import Dict, Optional, Tuple
 
 from controllers.base_controller import BaseController
-from ui.views.board_view import BoardView
-from ui.views.preview_view import PreviewView
-from ui.views.sidebar_view import SidebarView
-from ui.views.hud_view import HudView
-from ui.views.overlay_view import OverlayView
+from ui.views.main_view import MainView
 from ui.colours import WHITE
-from ui.font_manager import font_manager
-from ui.layout import SIDEBAR_WIDTH
 from data.stats_manager import StatsManager
 
+from utils.window_metrics import outer_from_client 
 
 class GameController(BaseController):
     """Controller for handling Pygame UI and game interactions."""
@@ -22,31 +19,31 @@ class GameController(BaseController):
         # Initialize base controller
         super().__init__(config)
         
+        # --- Make process DPI-aware so we work in raw pixels (Windows only) ---
+        if sys.platform == "win32":
+            try:
+                ctypes.windll.shcore.SetProcessDpiAwareness(1)   # PER_MONITOR_DPI_AWARE
+            except AttributeError:
+                pass
+
         # Initialize pygame
         pygame.init()
-        self.window_size = (1100, 720)  # Increased width for left sidebar
-        self.window = pygame.display.set_mode(self.window_size, pygame.HWSURFACE)
-        pygame.display.set_caption("BlockHarness – Pygame")
+        
+        # ------------------------------------------------------------------
+        # Initialise window so that the *client* area is exactly 1920×982
+        # ------------------------------------------------------------------
+        TARGET_CLIENT = (1920, 982)
+        outer_w, outer_h = outer_from_client(*TARGET_CLIENT)
+
+        self.window = pygame.display.set_mode((outer_w, outer_h), pygame.RESIZABLE)
+        self.client_size = TARGET_CLIENT          # store logical draw size
+        self.window_size = (outer_w, outer_h)     # outer size (optional)
+        # ------------------------------------------------------------------
+
         self.clock = pygame.time.Clock()
         
-        # Load custom fonts
-        self.font = font_manager.get_font('Kanit-Regular', 18)
-        self.large_font = font_manager.get_font('Kanit-Regular', 36)
-        self.small_font = font_manager.get_font('Kanit-Regular', 14)
-        
-        # Game state
-        self.cell_size = 64
-        self.preview_cell_size = 32  # Half size for preview blocks
-        self.board_origin = (SIDEBAR_WIDTH + 20, 16)  # Adjust board position based on sidebar width
-        self.preview_origin = (SIDEBAR_WIDTH + 20 + 8 * self.cell_size + 32, 16)
-        self.preview_spacing = 160  # Spacing between preview blocks
-        
-        # Initialize views
-        self.board_view = BoardView(self.board_origin, self.cell_size)
-        self.preview_view = PreviewView(self.preview_origin, self.preview_cell_size, self.preview_spacing)
-        self.sidebar_view = SidebarView(self.window_size, self.font, self.small_font)
-        self.hud_view = HudView(self.preview_origin, self.preview_spacing, self.font)
-        self.overlay_view = OverlayView(self.window_size, self.large_font, self.font)
+        # Initialize main view
+        self.main_view = MainView(self.window_size)
         
         # Stats management
         self.stats_manager = StatsManager()
@@ -55,43 +52,25 @@ class GameController(BaseController):
         self.stats_saved = False
         
         # Update sidebar fields from config
-        self.sidebar_view.update_config_fields(self.config)
+        self.main_view.update_config_fields(self.config)
     
     def apply_config_changes(self) -> bool:
         """Apply changes from the sidebar config inputs."""
-        new_config = self.sidebar_view.get_config_values()
+        new_config = self.main_view.get_config_values()
         return self.update_config(new_config)
     
-    def handle_board_click(self, x: int, y: int) -> bool:
+    def handle_board_click(self, grid_pos: Tuple[int, int]) -> bool:
         """Handle click on the game board to place a block."""
-        board_width = 8 * self.cell_size
-        board_height = 8 * self.cell_size
-        board_rect = pygame.Rect(self.board_origin[0], self.board_origin[1], board_width, board_height)
-        
-        if board_rect.collidepoint(x, y):
-            # Calculate grid position
-            grid_x = (x - self.board_origin[0]) // self.cell_size
-            grid_y = (y - self.board_origin[1]) // self.cell_size
-            
+        if grid_pos:
+            grid_y, grid_x = grid_pos
             # Try to place the block using controller's method
             return self.place_block(grid_y, grid_x)
-            
         return False
     
-    def handle_preview_click(self, x: int, y: int) -> bool:
+    def handle_preview_click(self, preview_index: int) -> bool:
         """Handle click on the preview area to select a block."""
-        preview_blocks = self.engine.get_preview_blocks()
-        
-        for i in range(min(3, len(preview_blocks))):
-            preview_rect = pygame.Rect(
-                self.preview_origin[0],
-                self.preview_origin[1] + i * self.preview_spacing,
-                self.preview_cell_size * 4,
-                self.preview_cell_size * 4
-            )
-            if preview_rect.collidepoint(x, y):
-                return self.select_block(i)
-                
+        if preview_index is not None:
+            return self.select_block(preview_index)
         return False
     
     def save_game_stats(self) -> None:
@@ -117,10 +96,25 @@ class GameController(BaseController):
             if event.type == pygame.QUIT:
                 return False
             
-            # Handle sidebar events
-            action = self.sidebar_view.handle_event(event)
-            if action == "apply":
-                self.apply_config_changes()
+            # Handle window resize events
+            if event.type == pygame.VIDEORESIZE:
+                self.window_size = (event.w, event.h)
+                self.window = pygame.display.set_mode(self.window_size, pygame.RESIZABLE)
+                # Update the main_view with the new window size
+                self.main_view.handle_resize(self.window_size)
+                self.main_view.update_config_fields(self.config)
+            
+            # Handle UI events via main_view
+            ui_action = self.main_view.handle_event(event)
+            if ui_action:
+                if ui_action.get("action") == "apply":
+                    self.apply_config_changes()
+                elif ui_action.get("action") == "restart":
+                    self.restart_game()
+                elif ui_action.get("action") == "select_block":
+                    self.handle_preview_click(ui_action.get("index"))
+                elif ui_action.get("action") == "place_block":
+                    self.handle_board_click(ui_action.get("position"))
             
             if event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_ESCAPE, pygame.K_q):
@@ -132,48 +126,18 @@ class GameController(BaseController):
                 elif event.key == pygame.K_RETURN and self.engine.game_over:
                     # Restart game when Enter key is pressed and game is over
                     self.restart_game()
-            
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                x, y = event.pos
-                
-                # Handle restart button click when game is over
-                if self.engine.game_over and self.overlay_view.is_restart_button_clicked((x, y)):
-                    self.restart_game()
-                    continue
-                
-                # Don't process game clicks if game over
-                if self.engine.game_over:
-                    continue
-                
-                # Check if click is on the preview area
-                self.handle_preview_click(x, y)
-                
-                # Check if click is on the board area
-                self.handle_board_click(x, y)
         
         return True
     
     def _draw_core(self, simulation_running=False, current_run=0, simulation_runs=0) -> None:
         """Core drawing logic. Protected method for reuse by subclasses."""
-        self.window.fill(WHITE)
+        # Use the main_view to draw all UI components
+        self.main_view.draw(self.window, self.engine, simulation_running, current_run, simulation_runs)
         
-        # Draw all views
-        self.sidebar_view.draw(self.window, simulation_running, current_run, simulation_runs)
-        self.board_view.draw(self.window, self.engine)
-        
-        # Get preview data from engine
-        preview_blocks = self.engine.get_preview_blocks()
-        selected_index = self.engine.get_selected_preview_index()
-        
-        self.preview_view.draw(self.window, preview_blocks, selected_index)
-        self.hud_view.draw(self.window, self.engine)
-        
-        # Draw game over overlay if needed and not during simulation
+        # Check for game over to save stats
         if self.engine.game_over and not simulation_running:
             # Save stats before displaying game over
             self.save_game_stats()
-            # Pass engine to overlay view to display stats
-            self.overlay_view.draw_game_over(self.window, self.engine)
         
         pygame.display.flip()
     

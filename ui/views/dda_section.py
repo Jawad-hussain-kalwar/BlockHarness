@@ -6,7 +6,7 @@ from ui.colours import (
 )
 from ui.layout import (
     SIDEBAR_WIDTH, SIDEBAR_PADDING, FIELD_HEIGHT, FIELD_SPACING,
-    SECTION_SPACING, LABEL_SPACING, BORDER_RADIUS
+    SECTION_SPACING, LABEL_SPACING, BORDER_RADIUS, SECTION_WIDTH
 )
 from ui.input_field import InputField
 from ui.dropdown_menu import DropdownMenu
@@ -24,7 +24,7 @@ class DDASection:
         
         # DDA section title
         self.dda_section_title = (left_x, y)
-        y += FIELD_HEIGHT
+        y += FIELD_HEIGHT + FIELD_SPACING
         
         # DDA Algorithm dropdown
         self.dda_algorithm_label = (left_x, y)
@@ -32,7 +32,7 @@ class DDASection:
         dda_algorithm_rect = pygame.Rect(left_x, y, field_width, FIELD_HEIGHT)
         self.dda_algorithm_dropdown = DropdownMenu(dda_algorithm_rect, [])
         self.dropdown_menus.append(self.dda_algorithm_dropdown)
-        y += FIELD_HEIGHT + FIELD_SPACING
+        y += FIELD_HEIGHT + FIELD_SPACING * 2
         
         # Initial weights label
         self.initial_weights_label = (left_x, y)
@@ -42,42 +42,43 @@ class DDASection:
         initial_field_rect = pygame.Rect(left_x, y, field_width, FIELD_HEIGHT)
         self.initial_weights_field = InputField(initial_field_rect, "", 20)
         self.input_fields.append(self.initial_weights_field)
-        y += FIELD_HEIGHT + FIELD_SPACING
+        y += FIELD_HEIGHT + FIELD_SPACING * 2
         
         # Threshold 1
-        y += FIELD_SPACING
         self.threshold1_label = (left_x, y)
         y += FIELD_HEIGHT - FIELD_SPACING
         
         # Threshold 1 score
-        threshold1_score_rect = pygame.Rect(left_x, y, field_width // 2 - 5, FIELD_HEIGHT)
+        self.score1_label = (left_x, y)
+        threshold1_score_rect = pygame.Rect(left_x, y + LABEL_SPACING + 5, field_width, FIELD_HEIGHT)
         self.threshold1_score_field = InputField(threshold1_score_rect, "", 5, numeric=True)
         self.input_fields.append(self.threshold1_score_field)
         
-        # Threshold 1 weights
-        threshold1_weights_rect = pygame.Rect(left_x + field_width // 2 + 5, y, field_width // 2 - 5, FIELD_HEIGHT)
+        # Threshold 1 weights (now below score)
+        self.weights1_label = (left_x, y + FIELD_HEIGHT + FIELD_SPACING + 5)
+        threshold1_weights_rect = pygame.Rect(left_x, y + FIELD_HEIGHT + FIELD_SPACING * 2 + 10, field_width, FIELD_HEIGHT)
         self.threshold1_weights_field = InputField(threshold1_weights_rect, "", 20)
         self.input_fields.append(self.threshold1_weights_field)
-        y += FIELD_HEIGHT + LABEL_SPACING + 10
+        y += FIELD_HEIGHT * 2 + FIELD_SPACING * 3 + 15
         
         # Threshold 2
-        y += FIELD_SPACING
         self.threshold2_label = (left_x, y)
         y += FIELD_HEIGHT - FIELD_SPACING
         
         # Threshold 2 score
-        threshold2_score_rect = pygame.Rect(left_x, y, field_width // 2 - 5, FIELD_HEIGHT)
+        self.score2_label = (left_x, y)
+        threshold2_score_rect = pygame.Rect(left_x, y + LABEL_SPACING + 5, field_width, FIELD_HEIGHT)
         self.threshold2_score_field = InputField(threshold2_score_rect, "", 5, numeric=True)
         self.input_fields.append(self.threshold2_score_field)
         
-        # Threshold 2 weights
-        threshold2_weights_rect = pygame.Rect(left_x + field_width // 2 + 5, y, field_width // 2 - 5, FIELD_HEIGHT)
+        # Threshold 2 weights (now below score)
+        self.weights2_label = (left_x, y + FIELD_HEIGHT + FIELD_SPACING + 5)
+        threshold2_weights_rect = pygame.Rect(left_x, y + FIELD_HEIGHT + FIELD_SPACING * 2 + 10, field_width, FIELD_HEIGHT)
         self.threshold2_weights_field = InputField(threshold2_weights_rect, "", 20)
         self.input_fields.append(self.threshold2_weights_field)
-        y += FIELD_HEIGHT + LABEL_SPACING + 10
+        y += FIELD_HEIGHT * 2 + FIELD_SPACING * 3 + 15
         
         # Apply button
-        y += SECTION_SPACING
         self.apply_button_rect = pygame.Rect(left_x, y, field_width, FIELD_HEIGHT * 1.5)
 
     def update_config_fields(self, config):
@@ -133,27 +134,23 @@ class DDASection:
         label = self.font.render("Difficulty Threshold 1:", True, TEXT_PRIMARY)
         surface.blit(label, self.threshold1_label)
         
+        # Draw score/weights labels for threshold 1
+        score_label = self.small_font.render("Score", True, TEXT_SECONDARY)
+        surface.blit(score_label, self.score1_label)
+        
+        weights_label = self.small_font.render("Weights", True, TEXT_SECONDARY)
+        surface.blit(weights_label, self.weights1_label)
+        
         # Draw threshold 2 label
         label = self.font.render("Difficulty Threshold 2:", True, TEXT_PRIMARY)
         surface.blit(label, self.threshold2_label)
         
-        # Draw helper labels for threshold inputs
+        # Draw score/weights labels for threshold 2
         score_label = self.small_font.render("Score", True, TEXT_SECONDARY)
+        surface.blit(score_label, self.score2_label)
+        
         weights_label = self.small_font.render("Weights", True, TEXT_SECONDARY)
-        
-        # Position helper labels under threshold 1 inputs
-        score_x = self.threshold1_score_field.rect.x + self.threshold1_score_field.rect.width // 2 - score_label.get_width() // 2
-        weights_x = self.threshold1_weights_field.rect.x + self.threshold1_weights_field.rect.width // 2 - weights_label.get_width() // 2
-        y = self.threshold1_score_field.rect.y + self.threshold1_score_field.rect.height + 2
-        surface.blit(score_label, (score_x, y))
-        surface.blit(weights_label, (weights_x, y))
-        
-        # Position helper labels under threshold 2 inputs
-        score_x = self.threshold2_score_field.rect.x + self.threshold2_score_field.rect.width // 2 - score_label.get_width() // 2
-        weights_x = self.threshold2_weights_field.rect.x + self.threshold2_weights_field.rect.width // 2 - weights_label.get_width() // 2
-        y = self.threshold2_score_field.rect.y + self.threshold2_score_field.rect.height + 2
-        surface.blit(score_label, (score_x, y))
-        surface.blit(weights_label, (weights_x, y))
+        surface.blit(weights_label, self.weights2_label)
         
         # Draw apply button
         pygame.draw.rect(surface, BUTTON_PRIMARY_BG, self.apply_button_rect, border_radius=BORDER_RADIUS)

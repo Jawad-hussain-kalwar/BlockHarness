@@ -32,7 +32,7 @@ class DropdownMenu:
         self.scroll_offset = 0
         
         # Default font
-        self.font = font_manager.get_font('Kanit-Regular', 18)
+        self.font = font_manager.get_font('Ubuntu-Regular', 18)
         
         # Calculate dropdown height (limited by max_visible_options)
         self.update_dropdown_height()

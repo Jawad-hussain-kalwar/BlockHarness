@@ -13,7 +13,7 @@ class FontManager:
         """Get a font by name and size.
         
         Args:
-            font_name: Name of the font file without extension (e.g., 'Kanit-Regular')
+            font_name: Name of the font file without extension (e.g., 'Ubuntu-Regular')
             size: Font size in points
             
         Returns:
