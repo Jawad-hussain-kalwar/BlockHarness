@@ -13,13 +13,13 @@ from ui.layout import (
 from ui.input_field import InputField
 from ui.dropdown_menu import DropdownMenu
 from ui.debug import draw_debug_rect
+from ui.views.dda_views import ThresholdDDAView, StaticDDAView
 
 
 class DDASection:
     def __init__(self, left_x, top_y, field_width, font, small_font):
         self.font = font
         self.small_font = small_font
-        self.input_fields = []
         self.dropdown_menus = []
         
         # Initialize section rectangle with new layout constants
@@ -50,67 +50,26 @@ class DDASection:
         self.dropdown_menus.append(self.dda_algorithm_dropdown)
         y += FIELD_HEIGHT + FIELD_SPACING * 2
         
-        # Initial weights label
-        self.initial_weights_label = (left_x, y)
-        y += FIELD_HEIGHT - FIELD_SPACING + 4
+        # Create the DDA view container rect (everything below the dropdown)
+        dda_view_height = SECTION_HEIGHT - (y - self.rect.y) - FIELD_HEIGHT * 2 - FIELD_SPACING * 2 - PADDING
+        self.dda_view_rect = pygame.Rect(left_x, y, field_width, dda_view_height)
         
-        # Initial weights input
-        initial_field_rect = pygame.Rect(left_x, y, field_width, FIELD_HEIGHT)
-        self.initial_weights_field = InputField(initial_field_rect, "", 20)
-        self.input_fields.append(self.initial_weights_field)
-        y += FIELD_HEIGHT + FIELD_SPACING * 2
+        # Initialize DDA views
+        self.threshold_dda_view = ThresholdDDAView(self.dda_view_rect, font, small_font)
+        self.static_dda_view = StaticDDAView(self.dda_view_rect, font, small_font)
         
-        # Threshold 1
-        self.threshold1_label = (left_x, y)
-        y += FIELD_HEIGHT - FIELD_SPACING
+        # Set default active view
+        self.active_dda_view = self.threshold_dda_view
         
-        # Threshold 1 score
-        self.score1_label = (left_x, y)
-        threshold1_score_rect = pygame.Rect(left_x, y + LABEL_SPACING + 5, field_width, FIELD_HEIGHT)
-        self.threshold1_score_field = InputField(threshold1_score_rect, "", 5, numeric=True)
-        self.input_fields.append(self.threshold1_score_field)
-        
-        # Threshold 1 weights (now below score)
-        self.weights1_label = (left_x, y + FIELD_HEIGHT + FIELD_SPACING + 5)
-        threshold1_weights_rect = pygame.Rect(left_x, y + FIELD_HEIGHT + FIELD_SPACING * 2 + 10, field_width, FIELD_HEIGHT)
-        self.threshold1_weights_field = InputField(threshold1_weights_rect, "", 20)
-        self.input_fields.append(self.threshold1_weights_field)
-        y += FIELD_HEIGHT * 2 + FIELD_SPACING * 3 + 15
-        
-        # Threshold 2
-        self.threshold2_label = (left_x, y)
-        y += FIELD_HEIGHT - FIELD_SPACING
-        
-        # Threshold 2 score
-        self.score2_label = (left_x, y)
-        threshold2_score_rect = pygame.Rect(left_x, y + LABEL_SPACING + 5, field_width, FIELD_HEIGHT)
-        self.threshold2_score_field = InputField(threshold2_score_rect, "", 5, numeric=True)
-        self.input_fields.append(self.threshold2_score_field)
-        
-        # Threshold 2 weights (now below score)
-        self.weights2_label = (left_x, y + FIELD_HEIGHT + FIELD_SPACING + 5)
-        threshold2_weights_rect = pygame.Rect(left_x, y + FIELD_HEIGHT + FIELD_SPACING * 2 + 10, field_width, FIELD_HEIGHT)
-        self.threshold2_weights_field = InputField(threshold2_weights_rect, "", 20)
-        self.input_fields.append(self.threshold2_weights_field)
-        y += FIELD_HEIGHT * 2 + FIELD_SPACING * 3 + 15
-        
-        # Apply button
-        self.apply_button_rect = pygame.Rect(left_x, y, field_width, FIELD_HEIGHT * 1.5)
+        # Apply button (positioned after the DDA view container)
+        apply_button_y = self.dda_view_rect.y + self.dda_view_rect.height + FIELD_SPACING
+        self.apply_button_rect = pygame.Rect(left_x, apply_button_y, field_width, FIELD_HEIGHT * 1.5)
 
     def update_config_fields(self, config):
         """Update input fields from config."""
-        initial_weights = ",".join(map(str, config["shape_weights"]))
-        self.initial_weights_field.value = initial_weights
-        
-        threshold1_score = config["difficulty_thresholds"][0][0]
-        threshold1_weights = ",".join(map(str, config["difficulty_thresholds"][0][1]))
-        self.threshold1_score_field.value = str(threshold1_score)
-        self.threshold1_weights_field.value = threshold1_weights
-        
-        threshold2_score = config["difficulty_thresholds"][1][0]
-        threshold2_weights = ",".join(map(str, config["difficulty_thresholds"][1][1]))
-        self.threshold2_score_field.value = str(threshold2_score)
-        self.threshold2_weights_field.value = threshold2_weights
+        # Update the active DDA view's fields
+        self.threshold_dda_view.update_config_fields(config)
+        self.static_dda_view.update_config_fields(config)
         
         # Set default DDA algorithm if available
         if self.dda_algorithm_dropdown.options:
@@ -118,6 +77,8 @@ class DDASection:
             for i, (value, _) in enumerate(self.dda_algorithm_dropdown.options):
                 if value == dda_algorithm:
                     self.dda_algorithm_dropdown.selected_index = i
+                    # Update the active DDA view based on selection
+                    self._update_active_dda_view(value)
                     break
 
     def update_dda_algorithm_dropdown(self, dda_algorithms):
@@ -131,6 +92,17 @@ class DDASection:
         # Reset selected index to 0 if needed
         if not self.dda_algorithm_dropdown.options:
             self.dda_algorithm_dropdown.selected_index = 0
+        else:
+            # Set active view based on the selected algorithm
+            self._update_active_dda_view(self.dda_algorithm_dropdown.get_selected_value())
+
+    def _update_active_dda_view(self, algorithm_name):
+        """Update the active DDA view based on the selected algorithm."""
+        if algorithm_name == "ThresholdDDA":
+            self.active_dda_view = self.threshold_dda_view
+        elif algorithm_name == "StaticDDA":
+            self.active_dda_view = self.static_dda_view
+        # Add future DDA types here
 
     def draw(self, surface):
         """Draw the DDA section elements."""
@@ -148,31 +120,8 @@ class DDASection:
         label = self.font.render("DDA Algorithm:", True, TEXT_PRIMARY)
         surface.blit(label, self.dda_algorithm_label)
         
-        # Draw initial weights label
-        label = self.font.render("Initial Shape Weights (0-10):", True, TEXT_PRIMARY)
-        surface.blit(label, self.initial_weights_label)
-        
-        # Draw threshold 1 label
-        label = self.font.render("Difficulty Threshold 1:", True, TEXT_PRIMARY)
-        surface.blit(label, self.threshold1_label)
-        
-        # Draw score/weights labels for threshold 1
-        score_label = self.small_font.render("Score", True, TEXT_SECONDARY)
-        surface.blit(score_label, self.score1_label)
-        
-        weights_label = self.small_font.render("Weights", True, TEXT_SECONDARY)
-        surface.blit(weights_label, self.weights1_label)
-        
-        # Draw threshold 2 label
-        label = self.font.render("Difficulty Threshold 2:", True, TEXT_PRIMARY)
-        surface.blit(label, self.threshold2_label)
-        
-        # Draw score/weights labels for threshold 2
-        score_label = self.small_font.render("Score", True, TEXT_SECONDARY)
-        surface.blit(score_label, self.score2_label)
-        
-        weights_label = self.small_font.render("Weights", True, TEXT_SECONDARY)
-        surface.blit(weights_label, self.weights2_label)
+        # Draw the active DDA view
+        self.active_dda_view.draw(surface)
         
         # Draw apply button
         pygame.draw.rect(surface, BUTTON_PRIMARY_BG, self.apply_button_rect, border_radius=BORDER_RADIUS)
@@ -182,10 +131,7 @@ class DDASection:
         text_y = self.apply_button_rect.y + self.apply_button_rect.height // 2 - apply_text.get_height() // 2
         surface.blit(apply_text, (text_x, text_y))
         
-        # Draw input fields and dropdowns
-        for field in self.input_fields:
-            field.draw(surface)
-        
+        # Draw dropdowns
         for dropdown in self.dropdown_menus:
             dropdown.draw(surface)
 
@@ -195,13 +141,20 @@ class DDASection:
         Returns:
             String: "apply" if apply button was clicked, None otherwise
         """
-        # Handle input field events
-        for field in self.input_fields:
-            field.handle_event(event)
+        # Handle active DDA view events
+        self.active_dda_view.handle_event(event)
         
         # Handle dropdown events
+        previous_value = None
+        if self.dda_algorithm_dropdown.options:
+            previous_value = self.dda_algorithm_dropdown.get_selected_value()
+            
         for dropdown in self.dropdown_menus:
             dropdown.handle_event(event)
+        
+        # Check if the DDA algorithm selection changed
+        if self.dda_algorithm_dropdown.options and previous_value != self.dda_algorithm_dropdown.get_selected_value():
+            self._update_active_dda_view(self.dda_algorithm_dropdown.get_selected_value())
         
         # Check for button clicks
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -220,51 +173,20 @@ class DDASection:
         Returns:
             Dict: Configuration parameters, or None if validation fails
         """
-        try:
-            # Parse initial weights
-            initial_weights = list(map(int, self.initial_weights_field.value.split(",")))
-            if len(initial_weights) != 11:
-                print("Initial weights must have 8 values")
-                return None
-            
-            # Parse threshold 1
-            threshold1_score = int(self.threshold1_score_field.value)
-            threshold1_weights = list(map(int, self.threshold1_weights_field.value.split(",")))
-            if len(threshold1_weights) != 8:
-                print("Threshold 1 weights must have 8 values")
-                return None
-            
-            # Parse threshold 2
-            threshold2_score = int(self.threshold2_score_field.value)
-            threshold2_weights = list(map(int, self.threshold2_weights_field.value.split(",")))
-            if len(threshold2_weights) != 8:
-                print("Threshold 2 weights must have 8 values")
-                return None
-            
-            # Get selected DDA algorithm
-            dda_algorithm = None
-            if self.dda_algorithm_dropdown.options:
-                dda_algorithm = self.dda_algorithm_dropdown.get_selected_value()
-            
-            # Build configuration dictionary
-            return {
-                "shape_weights": initial_weights,
-                "difficulty_thresholds": [
-                    (threshold1_score, threshold1_weights),
-                    (threshold2_score, threshold2_weights),
-                ],
-                "dda_algorithm": dda_algorithm or "ThresholdDDA",
-                "dda_params": {
-                    "thresholds": [
-                        (threshold1_score, threshold1_weights),
-                        (threshold2_score, threshold2_weights),
-                    ]
-                }
-            }
-            
-        except (ValueError, IndexError) as e:
-            print(f"Invalid configuration values: {e}")
+        # Get configuration values from the active DDA view
+        config_values = self.active_dda_view.get_config_values()
+        if config_values is None:
             return None
+            
+        # Add the selected DDA algorithm
+        dda_algorithm = None
+        if self.dda_algorithm_dropdown.options:
+            dda_algorithm = self.dda_algorithm_dropdown.get_selected_value()
+            
+        # Update the configuration with the selected algorithm
+        config_values["dda_algorithm"] = dda_algorithm or "ThresholdDDA"
+        
+        return config_values
     
     def get_selected_dda_algorithm(self):
         """Get the selected DDA algorithm from the dropdown.
