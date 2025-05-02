@@ -87,9 +87,31 @@ class AnimationManager:
         """Update all animations and remove completed ones"""
         self.animations = [anim for anim in self.animations if not anim.update()]
     
+    def update_animations(self) -> List[Animation]:
+        """Update all animations and return completed ones.
+        
+        Returns:
+            List[Animation]: List of animations that completed this update
+        """
+        completed = []
+        remaining = []
+        
+        for anim in self.animations:
+            if anim.update():
+                completed.append(anim)
+            else:
+                remaining.append(anim)
+                
+        self.animations = remaining
+        return completed
+    
     def is_animating(self) -> bool:
         """Check if any animations are active"""
         return len(self.animations) > 0
+    
+    def has_animations(self) -> bool:
+        """Check if any animations are active (alias for is_animating)"""
+        return self.is_animating()
     
     def get_cell_opacity(self, row: int, col: int) -> Optional[float]:
         """Get opacity for a specific cell if it's being animated

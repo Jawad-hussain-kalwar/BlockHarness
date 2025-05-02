@@ -1,7 +1,7 @@
 # ui/views/state_section.py
 import pygame
 from ui.colours import (
-    SECTION_BG, SECTION_BG, SECTION_BORDER, TEXT_PRIMARY
+    SECTION_BG, SECTION_BORDER, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_WARNING, TEXT_DANGER
 )
 from ui.layout import (
     PADDING, DDA_WIDTH, SIM_WIDTH, GAME_WIDTH, STATE_WIDTH, SECTION_HEIGHT,
@@ -17,10 +17,84 @@ class StateSection:
         self.font = font
         self.small_font = small_font
         
+        # Create fonts with appropriate sizes without using get_filename()
+        self.title_font = pygame.font.Font(None, 22)  # Use default font
+        self.value_font = pygame.font.Font(None, 16)  # Use default font
+        
         # Initialize section rectangle with new layout constants
         x_origin = PADDING + DDA_WIDTH + PADDING + SIM_WIDTH + PADDING + GAME_WIDTH + PADDING
         y_origin = PADDING
         self.rect = pygame.Rect(x_origin, y_origin, STATE_WIDTH, SECTION_HEIGHT)
+        
+        # Scrolling state
+        self.scroll_y = 0
+        self.max_scroll_y = 0
+        
+        # Group metrics into categories
+        self.metrics_groups = [
+            {
+                "title": "Game State Metrics",
+                "metrics": [
+                    "imminent_threat",
+                    "occupancy_ratio",
+                    "fragmentation_count",
+                    "largest_empty_region",
+                    "danger_score",
+                    "phase"
+                ]
+            },
+            {
+                "title": "Player State Metrics",
+                "metrics": [
+                    "move_count",
+                    "lines_cleared",
+                    "score",
+                    "clear_rate",
+                    "perf_band",
+                    "player_level",
+                    "emotional_state"
+                ]
+            },
+            {
+                "title": "Timing Metrics",
+                "metrics": [
+                    "time_per_move",
+                    "avg_time_per_move"
+                ]
+            },
+            {
+                "title": "Mistake Metrics",
+                "metrics": [
+                    "mistake_flag",
+                    "mistake_count",
+                    "mistake_rate",
+                    "mistake_sw"
+                ]
+            }
+        ]
+        
+        # Labels for metrics (prettier display names)
+        self.metric_labels = {
+            "imminent_threat": "Imminent Threat",
+            "occupancy_ratio": "Occupancy Ratio",
+            "fragmentation_count": "Fragmentation Count",
+            "largest_empty_region": "Largest Empty Region",
+            "danger_score": "Danger Score",
+            "phase": "Game Phase",
+            "move_count": "Moves",
+            "lines_cleared": "Lines Cleared",
+            "score": "Score",
+            "clear_rate": "Clear Rate",
+            "perf_band": "Performance Band",
+            "player_level": "Player Level",
+            "emotional_state": "Emotional State",
+            "time_per_move": "Time Per Move (s)",
+            "avg_time_per_move": "Avg Time Per Move (s)",
+            "mistake_flag": "Mistake Flag",
+            "mistake_count": "Mistake Count",
+            "mistake_rate": "Mistake Rate",
+            "mistake_sw": "Recent Mistakes (10 moves)"
+        }
     
     def draw(self, surface, engine):
         """Draw the Game State section.
@@ -37,10 +111,108 @@ class StateSection:
         draw_debug_rect(surface, self.rect, "state")
         
         # Draw section title
-        title = self.font.render("Game State", True, TEXT_PRIMARY)
+        title = self.title_font.render("Game State", True, TEXT_PRIMARY)
         title_x = self.rect.x + PADDING
         title_y = self.rect.y + PADDING
         surface.blit(title, (title_x, title_y))
         
-        # This section is empty for now as specified in the approved plan
-        # Additional game state information will be added in future updates 
+        # Create a scrollable content area
+        content_rect = pygame.Rect(
+            self.rect.x + PADDING,
+            self.rect.y + PADDING + title.get_height() + PADDING,
+            self.rect.width - 2 * PADDING,
+            self.rect.height - 2 * PADDING - title.get_height() - PADDING
+        )
+        
+        # Get metrics data from engine
+        metrics = engine.get_metrics()
+        
+        # Draw metrics in groups with scrolling
+        y_offset = content_rect.y - self.scroll_y
+        
+        # Draw each group
+        for group in self.metrics_groups:
+            # Draw group title
+            group_title = self.font.render(group["title"], True, TEXT_PRIMARY)
+            surface.blit(group_title, (content_rect.x, y_offset))
+            y_offset += group_title.get_height() + 5
+            
+            # Draw metrics in this group
+            for metric_key in group["metrics"]:
+                if metric_key in metrics:
+                    value = metrics[metric_key]
+                    
+                    # Format value based on type
+                    if isinstance(value, bool):
+                        value_str = "Yes" if value else "No"
+                        # Use warning color for true imminent_threat
+                        value_color = TEXT_WARNING if value and metric_key == "imminent_threat" else TEXT_SECONDARY
+                    elif isinstance(value, (int, float)):
+                        value_str = str(value)
+                        # Use different colors based on danger thresholds
+                        if metric_key == "danger_score":
+                            danger_cut = engine.config["metrics_flow"]["danger_cut"]
+                            value_color = TEXT_DANGER if value >= danger_cut else TEXT_SECONDARY
+                        else:
+                            value_color = TEXT_SECONDARY
+                    else:
+                        value_str = str(value)
+                        value_color = TEXT_SECONDARY
+                    
+                    # Draw metric label
+                    label = self.value_font.render(f"{self.metric_labels.get(metric_key, metric_key)}:", True, TEXT_PRIMARY)
+                    surface.blit(label, (content_rect.x + 10, y_offset))
+                    
+                    # Draw metric value
+                    value_surf = self.value_font.render(value_str, True, value_color)
+                    surface.blit(value_surf, (content_rect.x + content_rect.width - value_surf.get_width() - 10, y_offset))
+                    
+                    y_offset += value_surf.get_height() + 5
+            
+            # Add space between groups
+            y_offset += 15
+        
+        # Calculate max scroll position
+        self.max_scroll_y = max(0, y_offset - content_rect.height - content_rect.y)
+        
+        # Handle scrolling
+        self._handle_scrolling(surface, content_rect)
+    
+    def _handle_scrolling(self, surface, content_rect):
+        """Handle scrolling of metrics display."""
+        # Only show scrollbar if content is scrollable
+        if self.max_scroll_y > 0:
+            # Draw scrollbar background
+            scrollbar_bg_rect = pygame.Rect(
+                self.rect.right - 15,
+                content_rect.y,
+                10,
+                content_rect.height
+            )
+            pygame.draw.rect(surface, (50, 50, 50), scrollbar_bg_rect, border_radius=3)
+            
+            # Calculate scrollbar handle size and position
+            visible_ratio = content_rect.height / (content_rect.height + self.max_scroll_y)
+            handle_height = max(30, content_rect.height * visible_ratio)
+            scroll_ratio = self.scroll_y / self.max_scroll_y if self.max_scroll_y > 0 else 0
+            handle_pos = content_rect.y + scroll_ratio * (content_rect.height - handle_height)
+            
+            # Draw scrollbar handle
+            scrollbar_handle_rect = pygame.Rect(
+                self.rect.right - 15,
+                handle_pos,
+                10,
+                handle_height
+            )
+            pygame.draw.rect(surface, (100, 100, 100), scrollbar_handle_rect, border_radius=3)
+    
+    def handle_event(self, event):
+        """Handle events for the state section, like scrolling."""
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 4:  # Scroll up
+                self.scroll_y = max(0, self.scroll_y - 20)
+                return True
+            elif event.button == 5:  # Scroll down
+                self.scroll_y = min(self.max_scroll_y, self.scroll_y + 20)
+                return True
+        return False 

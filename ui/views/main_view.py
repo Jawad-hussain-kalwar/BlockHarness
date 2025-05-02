@@ -74,6 +74,10 @@ class MainView:
         Returns:
             dict: Action and parameters if action needed, or None if no action
         """
+        # Handle state section events (like scrolling)
+        if self.state_section.handle_event(event):
+            return None
+        
         # Handle DDA section events
         dda_action = self.dda_section.handle_event(event)
         if dda_action:

@@ -13,3 +13,11 @@ class BlockPool:
     def sample(self) -> Block:
         shape = random.choices(self.shapes, weights=self.weights, k=1)[0]
         return Block(shape)
+        
+    def get_block(self) -> Block:
+        """Get a block based on the current weights.
+        
+        Returns:
+            Block: A new block with randomly selected shape
+        """
+        return self.sample()

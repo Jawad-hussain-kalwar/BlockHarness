@@ -102,6 +102,14 @@ class BaseController:
         """
         return self.engine.find_next_placeable_block()
     
+    def get_game_metrics(self) -> Dict:
+        """Get the current game metrics.
+        
+        Returns:
+            Dictionary containing all game metrics
+        """
+        return self.engine.get_metrics()
+    
     def get_game_state(self) -> Dict:
         """Get the current game state as a dictionary.
         
@@ -115,5 +123,6 @@ class BaseController:
             "score": self.engine.score,
             "lines": self.engine.lines,
             "blocks_placed": self.engine.blocks_placed,
-            "game_over": self.engine.game_over
+            "game_over": self.engine.game_over,
+            "metrics": self.engine.get_metrics()
         } 

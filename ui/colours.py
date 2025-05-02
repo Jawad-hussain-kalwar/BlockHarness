@@ -34,6 +34,8 @@ CELL_COLOR           = (24, 100, 88)   # Moss Green
 # Text
 TEXT_PRIMARY         = (230, 230, 230)    # very light grey
 TEXT_SECONDARY       = (200, 200, 200)   # light gray
+TEXT_WARNING         = (255, 200, 0)      # amber warning
+TEXT_DANGER          = (255, 90, 90)      # red danger
 
 # Inputs
 INPUT_BG             = (55, 55, 55)
