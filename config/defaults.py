@@ -14,7 +14,15 @@ CONFIG = {
         "thresholds": [
             (1000, [1, 2, 2, 2, 2, 2, 2, 3, 1, 1, 1]),            # harder
             (3000, [1, 1, 2, 3, 3, 3, 3, 4, 2, 2, 2]),            # hardest
-        ]
+        ],
+        "metrics_dda": {
+            "initial_difficulty": 3,                              # Starting difficulty (1-10)
+            "low_clear": 0.30,                                    # From existing metrics_flow
+            "high_clear": 0.70,                                   # From existing metrics_flow
+            "danger_cut": 0.80,                                   # From existing metrics_flow
+            "rescue_shape_weights": [10, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # Weights for rescue mode
+            "size_caps": [3, 3, 3, 4, 4, 4, 5, 5, 5, 5]           # Max shape size per difficulty level
+        }
     },
     # Metrics configuration
     "board_size": 8,                                              # cols, rows

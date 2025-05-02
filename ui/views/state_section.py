@@ -8,6 +8,7 @@ from ui.layout import (
     SIDEBAR_WIDTH, SIDEBAR_PADDING, BORDER_RADIUS
 )
 from ui.debug import draw_debug_rect
+from ui.font_manager import font_manager
 
 class StateSection:
     """View for the Game State section that displays game state information."""
@@ -17,9 +18,9 @@ class StateSection:
         self.font = font
         self.small_font = small_font
         
-        # Create fonts with appropriate sizes without using get_filename()
-        self.title_font = pygame.font.Font(None, 22)  # Use default font
-        self.value_font = pygame.font.Font(None, 16)  # Use default font
+        # Create fonts with Ubuntu-Regular instead of default font
+        self.title_font = font_manager.get_font('Ubuntu-Regular', 24)  # Doubled from 22 to 44
+        self.value_font = font_manager.get_font('Ubuntu-Regular', 20)  # Doubled from 16 to 32
         
         # Initialize section rectangle with new layout constants
         x_origin = PADDING + DDA_WIDTH + PADDING + SIM_WIDTH + PADDING + GAME_WIDTH + PADDING
