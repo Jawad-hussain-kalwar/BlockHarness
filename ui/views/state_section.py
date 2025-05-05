@@ -51,9 +51,11 @@ class StateSection:
                     "lines_cleared",
                     "score",
                     "clear_rate",
+                    "recent_clears",
                     "perf_band",
                     "player_level",
-                    "emotional_state"
+                    "emotional_state",
+                    "placement_efficiency"
                 ]
             },
             {
@@ -86,9 +88,11 @@ class StateSection:
             "lines_cleared": "Lines Cleared",
             "score": "Score",
             "clear_rate": "Clear Rate",
+            "recent_clears": "Recent Line Clears",
             "perf_band": "Performance Band",
             "player_level": "Player Level",
             "emotional_state": "Emotional State",
+            "placement_efficiency": "Placement Efficiency",
             "time_per_move": "Time Per Move (s)",
             "avg_time_per_move": "Avg Time Per Move (s)",
             "mistake_flag": "Mistake Flag",
@@ -128,11 +132,27 @@ class StateSection:
         # Get metrics data from engine
         metrics = engine.get_metrics()
         
+        # Get viewable metrics configuration
+        viewable_metrics = engine.config.get("viewable_metrics", {})
+        
         # Draw metrics in groups with scrolling
         y_offset = content_rect.y - self.scroll_y
         
         # Draw each group
         for group in self.metrics_groups:
+            # Track if any metrics in this group are visible
+            group_has_visible_metrics = False
+            
+            # Check if any metrics in this group are viewable
+            for metric_key in group["metrics"]:
+                if metric_key in metrics and viewable_metrics.get(metric_key, True):
+                    group_has_visible_metrics = True
+                    break
+            
+            # Skip group if no visible metrics
+            if not group_has_visible_metrics:
+                continue
+                
             # Draw group title
             group_title = self.font.render(group["title"], True, TEXT_PRIMARY)
             surface.blit(group_title, (content_rect.x, y_offset))
@@ -140,7 +160,8 @@ class StateSection:
             
             # Draw metrics in this group
             for metric_key in group["metrics"]:
-                if metric_key in metrics:
+                # Only display metrics that are enabled in the config
+                if metric_key in metrics and viewable_metrics.get(metric_key, True):
                     value = metrics[metric_key]
                     
                     # Format value based on type
@@ -156,6 +177,15 @@ class StateSection:
                             value_color = TEXT_DANGER if value >= danger_cut else TEXT_SECONDARY
                         else:
                             value_color = TEXT_SECONDARY
+                    elif isinstance(value, list):
+                        # Format lists (like recent_clears) in a readable way
+                        if metric_key == "recent_clears":
+                            # Format as a sequence of numbers
+                            value_str = " ".join(map(str, value))
+                        else:
+                            # Generic list formatting
+                            value_str = str(value)
+                        value_color = TEXT_SECONDARY
                     else:
                         value_str = str(value)
                         value_color = TEXT_SECONDARY

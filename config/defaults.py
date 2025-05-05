@@ -41,5 +41,36 @@ CONFIG = {
     # timing parameters:
     "metrics_timing": {
         "max_time_per_move": 8.0,                                 # seconds
+    },
+    # Configuration for which metrics are displayed in the state section
+    "viewable_metrics": {
+        # Game State Metrics
+        "imminent_threat": True,
+        "occupancy_ratio": True,
+        "fragmentation_count": True,
+        "largest_empty_region": True,
+        "danger_score": False,
+        "phase": False,
+        
+        # Player State Metrics
+        "move_count": True,
+        "lines_cleared": True,
+        "score": True,
+        "clear_rate": True,
+        "recent_clears": True,  # History of recent line clears
+        "perf_band": False,
+        "player_level": False,
+        "emotional_state": False,
+        "placement_efficiency": False,  # Efficiency of block placements
+        
+        # Timing Metrics
+        "time_per_move": False,
+        "avg_time_per_move": False,
+        
+        # Mistake Metrics
+        "mistake_flag": False,
+        "mistake_count": False,
+        "mistake_rate": False,
+        "mistake_sw": False
     }
 } 

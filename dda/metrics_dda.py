@@ -180,4 +180,4 @@ class MetricsDDA(BaseDDAAlgorithm):
         return weights
 
 # Register the metrics DDA algorithm
-registry.register("MetricsDDA", MetricsDDA) 
+registry.register(MetricsDDA) 

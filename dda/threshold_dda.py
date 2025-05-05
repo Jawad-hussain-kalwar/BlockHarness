@@ -69,4 +69,4 @@ class ThresholdDDA(BaseDDAAlgorithm):
 
 
 # Register the threshold DDA algorithm
-registry.register("ThresholdDDA", ThresholdDDA) 
+registry.register(ThresholdDDA) 

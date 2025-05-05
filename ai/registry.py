@@ -4,10 +4,11 @@ import os
 import sys
 from typing import Dict, List, Type, Tuple
 
+from utils.registry import Registry
 from ai.base_player import BaseAIPlayer
 
 
-class AIPlayerRegistry:
+class AIPlayerRegistry(Registry[BaseAIPlayer]):
     """Registry for AI player implementations.
     
     This class provides a way to discover and register all available AI player
@@ -16,8 +17,7 @@ class AIPlayerRegistry:
     
     def __init__(self):
         """Initialize the AI player registry."""
-        self._player_classes: Dict[str, Type[BaseAIPlayer]] = {}
-        self._initialized = False
+        super().__init__(BaseAIPlayer)
     
     def _discover_player_classes(self) -> None:
         """Discover all AI player classes in the ai directory."""
@@ -53,9 +53,9 @@ class AIPlayerRegistry:
         name = player.name
         
         # Register the class by name
-        self._player_classes[name] = player_class
+        self._register_class(name, player_class)
     
-    def get_player_class(self, name: str) -> Type[BaseAIPlayer]:
+    def get_player_class(self, name: str):
         """Get an AI player class by name.
         
         Args:
@@ -67,8 +67,7 @@ class AIPlayerRegistry:
         Raises:
             KeyError: If no AI player with the given name exists
         """
-        self._ensure_initialized()
-        return self._player_classes[name]
+        return self.get_class(name)
     
     def create_player(self, name: str) -> BaseAIPlayer:
         """Create an instance of an AI player by name.
@@ -82,8 +81,7 @@ class AIPlayerRegistry:
         Raises:
             KeyError: If no AI player with the given name exists
         """
-        player_class = self.get_player_class(name)
-        return player_class()
+        return self.create(name)
     
     def get_available_players(self) -> List[Tuple[str, str]]:
         """Get a list of available AI players with their names and descriptions.
@@ -91,23 +89,7 @@ class AIPlayerRegistry:
         Returns:
             A list of tuples (name, description) for each available AI player
         """
-        self._ensure_initialized()
-        
-        players = []
-        for name, player_class in self._player_classes.items():
-            player = player_class()
-            players.append((name, player.name))
-        
-        # Sort by name
-        players.sort(key=lambda p: p[0])
-        
-        return players
-    
-    def _ensure_initialized(self) -> None:
-        """Ensure the registry is initialized."""
-        if not self._initialized:
-            self._discover_player_classes()
-            self._initialized = True
+        return self.get_available_components()
 
 
 # Singleton instance of the AI player registry

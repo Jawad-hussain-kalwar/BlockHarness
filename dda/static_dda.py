@@ -75,4 +75,4 @@ class StaticDDA(BaseDDAAlgorithm):
 
 
 # Register the static DDA algorithm
-registry.register("StaticDDA", StaticDDA) 
+registry.register(StaticDDA) 

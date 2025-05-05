@@ -153,4 +153,4 @@ class IntervalDDA(BaseDDAAlgorithm):
 
 
 # Register the interval DDA algorithm
-registry.register("IntervalDDA", IntervalDDA) 
+registry.register(IntervalDDA) 

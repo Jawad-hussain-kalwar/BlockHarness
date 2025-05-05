@@ -62,18 +62,21 @@ class Board:
 
     def clear_full_lines(self) -> int:
         """Clear any full rows/cols; return number of lines removed."""
-        cells_to_clear = self.find_full_lines()
-        
-        # Count lines (rows + columns)
-        cleared_rows = set()
-        cleared_cols = set()
-        
-        for r, c in cells_to_clear:
-            cleared_rows.add(r)
-            cleared_cols.add(c)
-        
-        # Clear cells
+        # Identify full rows and columns
+        full_rows = [r for r in range(self.rows) if all(self.grid[r][c] for c in range(self.cols))]
+        full_cols = [c for c in range(self.cols) if all(self.grid[r][c] for r in range(self.rows))]
+
+        # Collect all cells to clear
+        cells_to_clear = set()
+        for r in full_rows:
+            for c in range(self.cols):
+                cells_to_clear.add((r, c))
+        for c in full_cols:
+            for r in range(self.rows):
+                cells_to_clear.add((r, c))
+
+        # Clear the identified cells
         self.clear_cells(cells_to_clear)
-        
-        # Return total number of lines cleared
-        return len(cleared_rows) + len(cleared_cols)
+
+        # Return the number of lines cleared (rows + columns)
+        return len(full_rows) + len(full_cols)

@@ -49,16 +49,17 @@ class GameEngine:
         self.animation_duration_ms = 300  # Default animation duration in milliseconds
 
     @staticmethod
-    def compute_line_score(lines: int) -> int:
-        """Calculate score based on number of lines cleared.
+    def compute_line_score(cells: int) -> int:
+        """Calculate score based on number of cells cleared.
         
         Args:
-            lines: Number of lines cleared
+            cells: Number of cells cleared
             
         Returns:
-            int: Score awarded for clearing those lines
+            int: Score awarded for clearing those cells
         """
-        return 10 * lines
+        # Award 1 point per cleared cell
+        return cells
 
     # ───────────────────────── Public API ──────────────────────────
 
@@ -188,13 +189,14 @@ class GameEngine:
                 self.animation_manager.add_animation(
                     FadeoutAnimation(cells_to_clear, self.animation_duration_ms)
                 )
-                # Update lines and score
+                # Update lines count (count of lines cleared)
                 self.lines += line_count
-                self.score += self.compute_line_score(line_count)
+                # Update score based on number of cells cleared
+                self.score += self.compute_line_score(len(cells_to_clear))
             else:
                 # Skip animation when duration is 0 (simulation mode)
                 self.lines += line_count
-                self.score += self.compute_line_score(line_count)
+                self.score += self.compute_line_score(len(cells_to_clear))
                 # Immediately clear the cells
                 # print("Immediately clearing cells - simulation mode")
                 self.board.clear_cells(cells_to_clear)
@@ -322,7 +324,7 @@ class GameEngine:
         return True
     
     def _count_lines_from_cells(self, cells: Set[Tuple[int, int]]) -> int:
-        """Count unique lines (rows + columns) from a set of cells.
+        """Count unique lines from a set of cells.
         
         Args:
             cells: Set of (row, col) tuples
@@ -330,14 +332,19 @@ class GameEngine:
         Returns:
             int: Number of unique lines (rows + columns)
         """
-        rows = set()
-        cols = set()
-        
+        # Count number of cells per row and per column
+        row_counts: Dict[int, int] = {}
+        col_counts: Dict[int, int] = {}
         for r, c in cells:
-            rows.add(r)
-            cols.add(c)
-        
-        return len(rows) + len(cols)
+            row_counts[r] = row_counts.get(r, 0) + 1
+            col_counts[c] = col_counts.get(c, 0) + 1
+
+        # Rows cleared: those rows where the number of cells equals the board columns
+        cleared_rows = sum(1 for r, count in row_counts.items() if count == self.board.cols)
+        # Columns cleared: those columns where the number of cells equals the board rows
+        cleared_cols = sum(1 for c, count in col_counts.items() if count == self.board.rows)
+
+        return cleared_rows + cleared_cols
     
     def _maybe_update_difficulty(self):
         """Update difficulty - maintained for backward compatibility.
