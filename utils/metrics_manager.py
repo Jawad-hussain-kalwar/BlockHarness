@@ -30,6 +30,11 @@ class MetricsManager:
         # Timing parameters
         self.max_time_per_move = config["metrics_timing"]["max_time_per_move"]
         
+        # Initialize game analysis metrics
+        self.best_fit_block = "None"
+        self.opportunity = False
+        self.game_over_block = "None"
+        
         # Initialize game state metrics
         self.imminent_threat = False
         self.occupancy_ratio = 0.0
@@ -58,6 +63,21 @@ class MetricsManager:
         
         # Timing tracking
         self._last_move_start_time = time.time()
+        
+        # Shape names directly from shapes.py comments for consistency
+        self.shape_names = [
+            "single",
+            "1×2",
+            "2×2 square",
+            "3×1 line",
+            "L-shape",
+            "long L-shape",
+            "T-shape",
+            "Z-shape",
+            "S-shape",
+            "Plus-shape",
+            "longT-shape"
+        ]
     
     def start_move_timer(self) -> None:
         """Start timing a new move."""
@@ -143,6 +163,191 @@ class MetricsManager:
         
         # Check for imminent threat
         self.imminent_threat = self._check_imminent_threat(board, preview_blocks)
+        
+        # Calculate game analysis metrics
+        self._update_game_analysis_metrics(board, preview_blocks)
+    
+    def _update_game_analysis_metrics(self, board: Board, preview_blocks: List[Tuple[Block, int]]) -> None:
+        """Update game analysis metrics based on the current board state.
+        
+        Args:
+            board: Current game board
+            preview_blocks: List of preview blocks with rotations
+        """
+        # Get all possible blocks from the shapes configuration
+        all_shapes = self.config["shapes"]
+        
+        # Find the best fit block (one that clears the most lines)
+        self.best_fit_block = self._find_best_fit_block(board, all_shapes)
+        
+        # Check for game end opportunity and game over block after preview blocks
+        self.opportunity, self.game_over_block = self._check_game_end_opportunity(board, all_shapes, preview_blocks)
+    
+    def _find_best_fit_block(self, board: Board, shapes: List[List[List[int]]]) -> str:
+        """Find block that clears the most lines when placed on the board.
+        
+        Args:
+            board: Current game board
+            shapes: List of all possible block shapes
+            
+        Returns:
+            String name of the best fit block or "None" if no block clears a line
+        """
+        best_block_idx = -1
+        max_lines_cleared = 0
+        
+        # Try each block shape
+        for shape_idx, shape in enumerate(shapes):
+            block = Block(shape)
+            
+            # Try all rotations
+            for rotation in range(4):
+                rotated_block = block.rotate_clockwise(rotation)
+                
+                # Try all placements
+                for r in range(board.rows):
+                    for c in range(board.cols):
+                        if board.can_place(rotated_block, r, c):
+                            # Create a copy of the board
+                            temp_board = Board(board.rows, board.cols)
+                            temp_board.grid = [row[:] for row in board.grid]  # Deep copy
+                            
+                            # Place the block on the temporary board
+                            temp_board.place_block(rotated_block, r, c)
+                            
+                            # Find cells to clear
+                            cells_to_clear = temp_board.find_full_lines()
+                            
+                            # Count the number of unique lines (rows + columns)
+                            # Based on game_engine._count_lines_from_cells logic
+                            row_counts = {}
+                            col_counts = {}
+                            for r_cell, c_cell in cells_to_clear:
+                                row_counts[r_cell] = row_counts.get(r_cell, 0) + 1
+                                col_counts[c_cell] = col_counts.get(c_cell, 0) + 1
+                                
+                            cleared_rows = sum(1 for r_val, count in row_counts.items() 
+                                             if count == temp_board.cols)
+                            cleared_cols = sum(1 for c_val, count in col_counts.items() 
+                                             if count == temp_board.rows)
+                            
+                            lines_cleared = cleared_rows + cleared_cols
+                            
+                            # Update best block if this one clears more lines
+                            if lines_cleared > max_lines_cleared:
+                                max_lines_cleared = lines_cleared
+                                best_block_idx = shape_idx
+        
+        # Return the name of the best block or "None" if no block clears any lines
+        if best_block_idx >= 0 and max_lines_cleared > 0:
+            if best_block_idx < len(self.shape_names):
+                return self.shape_names[best_block_idx]
+            else:
+                return f"Shape {best_block_idx}"  # Fallback if shape names array is shorter
+        else:
+            return "None"
+    
+    def _check_game_end_opportunity(self, board: Board, shapes: List[List[List[int]]], 
+                                    preview_blocks: List[Tuple[Block, int]]) -> Tuple[bool, str]:
+        """Check if there's an opportunity to end the game by finding a block that doesn't fit.
+        Takes into account preview blocks as if they're already placed.
+        
+        Args:
+            board: Current game board
+            shapes: List of all possible block shapes
+            preview_blocks: List of preview blocks with rotations
+            
+        Returns:
+            Tuple of (opportunity exists, block that doesn't fit)
+        """
+        # First create a future board state with all preview blocks placed optimally
+        future_board = self._create_future_board_with_preview(board, preview_blocks)
+        
+        # If future board creation fails, game is likely already over
+        if future_board is None:
+            return False, "None"
+            
+        # Try each block shape on the future board
+        for shape_idx, shape in enumerate(shapes):
+            block = Block(shape)
+            can_place_anywhere = False
+            
+            # Try all rotations
+            for rotation in range(4):
+                rotated_block = block.rotate_clockwise(rotation)
+                
+                # Try all placements
+                for r in range(future_board.rows):
+                    for c in range(future_board.cols):
+                        if future_board.can_place(rotated_block, r, c):
+                            can_place_anywhere = True
+                            break
+                    if can_place_anywhere:
+                        break
+                if can_place_anywhere:
+                    break
+            
+            # If this block can't be placed anywhere on the future board
+            if not can_place_anywhere:
+                return True, self.shape_names[shape_idx] if shape_idx < len(self.shape_names) else f"Shape {shape_idx}"
+        
+        # All blocks can be placed somewhere
+        return False, "None"
+    
+    def _create_future_board_with_preview(self, board: Board, preview_blocks: List[Tuple[Block, int]]) -> Optional[Board]:
+        """Create a future board state with all preview blocks placed optimally.
+        
+        Args:
+            board: Current game board
+            preview_blocks: List of preview blocks with rotations
+            
+        Returns:
+            Future board state or None if preview blocks cannot be placed
+        """
+        # Create a copy of the board
+        future_board = Board(board.rows, board.cols)
+        future_board.grid = [row[:] for row in board.grid]  # Deep copy
+        
+        # Try to place each preview block in a location that would clear the most lines
+        for block, rotation in preview_blocks:
+            rotated_block = block.rotate_clockwise(rotation)
+            best_placement = None
+            max_lines_cleared = -1
+            
+            # Find the best placement for this block
+            for r in range(future_board.rows):
+                for c in range(future_board.cols):
+                    if future_board.can_place(rotated_block, r, c):
+                        # Try placing the block here
+                        temp_board = Board(future_board.rows, future_board.cols)
+                        temp_board.grid = [row[:] for row in future_board.grid]  # Deep copy
+                        temp_board.place_block(rotated_block, r, c)
+                        
+                        # Find cells to clear
+                        cells_to_clear = temp_board.find_full_lines()
+                        
+                        # Count lines that would be cleared (simplistic approach)
+                        lines_cleared = len(cells_to_clear) // max(future_board.rows, future_board.cols)
+                        
+                        # Update best placement if this one is better
+                        if lines_cleared > max_lines_cleared:
+                            max_lines_cleared = lines_cleared
+                            best_placement = (r, c)
+            
+            # If we couldn't place this block anywhere, return None
+            if best_placement is None:
+                return None
+                
+            # Place the block at the best location
+            r, c = best_placement
+            future_board.place_block(rotated_block, r, c)
+            
+            # Clear any full lines
+            cells_to_clear = future_board.find_full_lines()
+            if cells_to_clear:
+                future_board.clear_cells(cells_to_clear)
+                
+        return future_board
     
     def _find_empty_clusters(self, board: Board) -> List[Set[Tuple[int, int]]]:
         """Find all connected empty regions on the board using BFS.
@@ -264,6 +469,11 @@ class MetricsManager:
             Dictionary containing all current metrics
         """
         return {
+            # Game analysis metrics
+            "best_fit_block": self.best_fit_block,
+            "opportunity": self.opportunity,
+            "game_over_block": self.game_over_block,
+            
             # Game state metrics
             "imminent_threat": self.imminent_threat,
             "occupancy_ratio": round(self.occupancy_ratio, 2),

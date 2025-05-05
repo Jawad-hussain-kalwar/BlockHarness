@@ -34,6 +34,14 @@ class StateSection:
         # Group metrics into categories
         self.metrics_groups = [
             {
+                "title": "Game Analysis",
+                "metrics": [
+                    "best_fit_block",
+                    "opportunity",
+                    "game_over_block"
+                ]
+            },
+            {
                 "title": "Game State Metrics",
                 "metrics": [
                     "imminent_threat",
@@ -78,6 +86,9 @@ class StateSection:
         
         # Labels for metrics (prettier display names)
         self.metric_labels = {
+            "best_fit_block": "Best Fit Block",
+            "opportunity": "Game End Opportunity",
+            "game_over_block": "Game Over Block",
             "imminent_threat": "Imminent Threat",
             "occupancy_ratio": "Occupancy Ratio",
             "fragmentation_count": "Fragmentation Count",
@@ -167,8 +178,8 @@ class StateSection:
                     # Format value based on type
                     if isinstance(value, bool):
                         value_str = "Yes" if value else "No"
-                        # Use warning color for true imminent_threat
-                        value_color = TEXT_WARNING if value and metric_key == "imminent_threat" else TEXT_SECONDARY
+                        # Use warning color for true imminent_threat or opportunity
+                        value_color = TEXT_WARNING if value and (metric_key == "imminent_threat" or metric_key == "opportunity") else TEXT_SECONDARY
                     elif isinstance(value, (int, float)):
                         value_str = str(value)
                         # Use different colors based on danger thresholds

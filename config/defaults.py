@@ -44,6 +44,11 @@ CONFIG = {
     },
     # Configuration for which metrics are displayed in the state section
     "viewable_metrics": {
+        # Game Analysis Metrics
+        "best_fit_block": True,
+        "opportunity": True,
+        "game_over_block": True,
+        
         # Game State Metrics
         "imminent_threat": True,
         "occupancy_ratio": True,
