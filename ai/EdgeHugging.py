@@ -1,113 +1,142 @@
 # ai/EdgeHugging.py
-from typing import Tuple, Optional, List
+from typing import Dict, List, Tuple, Optional
+from collections import deque
+import copy
+import random
 
 from engine.game_engine import GameEngine
+from engine.board import Board
+from engine.block import Block
 from ai.base_player import BaseAIPlayer
 
 
-class EdgeHuggingAIPlayer(BaseAIPlayer):
-    """Edge hugging strategy: prefer placements along the edges of the board."""
+class EdgeHugging(BaseAIPlayer):
+    """An AI player that tries to place blocks along the edges of the board."""
     
     @property
     def name(self) -> str:
-        return "Edge Hugger"
+        return "Edge Hugging"
     
-    def _calculate_edge_score(self, engine: GameEngine, row: int, col: int, block_index: int, rotation: int) -> int:
-        """Calculate a score based on how many cells would be along edges.
+    @property
+    def description(self) -> str:
+        return "Places blocks preferentially along the edges of the board."
+    
+    def choose_move(self, engine: GameEngine, block_index: int) -> Optional[Tuple[int, int]]:
+        """Choose the best placement for the specified block.
         
         Args:
-            engine: The game engine
-            row: Row placement position
-            col: Column placement position
+            engine: Game engine 
             block_index: Index of the block to place
-            rotation: Rotation to apply to the block
             
         Returns:
-            Score representing how many cells would be along edges
+            Tuple of (row, col) for best placement, or None if no valid placement
         """
-        # Get the block with rotation
-        block_list = engine.get_preview_blocks()
-        if not 0 <= block_index < len(block_list):
-            return 0
+        # Get the board state and block
+        board_state = engine.get_board_state()
+        board = Board.from_grid(board_state)
+        preview_blocks = engine.get_preview_blocks()
+        block = preview_blocks[block_index]
+        
+        # Calculate edge score for each possible placement
+        best_position = None
+        best_score = -float('inf')
+        
+        # Try placing the block at each position
+        for r in range(board.rows):
+            for c in range(board.cols):
+                if board.can_place(block, r, c):
+                    # Create a copy of the board and place the block
+                    tmp_board = copy.deepcopy(board)
+                    tmp_board.place_block(block, r, c)
+                    
+                    # Calculate edge score
+                    edge_score = self._calculate_edge_score(tmp_board)
+                    
+                    # Calculate compactness score
+                    compactness_score = self._calculate_compactness(tmp_board)
+                    
+                    # Calculate line clear score
+                    line_clear_cells = tmp_board.find_full_lines()
+                    line_clear_score = len(line_clear_cells) * 10  # High bonus for clearing lines
+                    
+                    # Calculate overall score (weighted)
+                    total_score = (
+                        edge_score * 1.5 +  # Edge score is important
+                        compactness_score * 1.0 +  # Compactness is good too 
+                        line_clear_score  # Line clearing is very valuable
+                    )
+                    
+                    # Add small random factor to break ties
+                    total_score += random.random() * 0.1
+                    
+                    # Update best position if this is better
+                    if total_score > best_score:
+                        best_score = total_score
+                        best_position = (r, c)
+        
+        return best_position
+    
+    def _calculate_edge_score(self, board: Board) -> float:
+        """Calculate how well blocks are placed along edges.
+        
+        Args:
+            board: Board to evaluate
             
-        block, _ = block_list[block_index]
-        rotated_block = block.rotate_clockwise(rotation)
-        
-        # Calculate edges of the board
-        board_width = engine.board.cols
-        board_height = engine.board.rows
-        
-        # Calculate edge score
+        Returns:
+            Edge score (higher is better)
+        """
         edge_score = 0
+        rows, cols = board.rows, board.cols
         
-        # Iterate through the block cells
-        for r_off, c_off in rotated_block.cells:
-            board_r = row + r_off
-            board_c = col + c_off
-
-            # Check if cell is along an edge
-            if (board_r == 0 or board_r == board_height - 1 or 
-                board_c == 0 or board_c == board_width - 1):
-                edge_score += 1
+        # Count filled cells along the edges
+        edge_cells = 0
+        total_edge_cells = 2 * rows + 2 * cols - 4  # Avoid double-counting corners
         
-        return edge_score
+        # Check left and right edges
+        for r in range(rows):
+            if board.grid[r][0] == 1:  # Left edge
+                edge_cells += 1
+            if board.grid[r][cols-1] == 1:  # Right edge
+                edge_cells += 1
+                
+        # Check top and bottom edges (excluding corners which were already counted)
+        for c in range(1, cols-1):
+            if board.grid[0][c] == 1:  # Top edge
+                edge_cells += 1
+            if board.grid[rows-1][c] == 1:  # Bottom edge
+                edge_cells += 1
+        
+        # Calculate edge occupancy score
+        edge_score = edge_cells / total_edge_cells if total_edge_cells > 0 else 0
+        
+        return edge_score * 100  # Scale to a larger range
     
-    def choose_move(self, engine: GameEngine, block_index: int, rotation: int) -> Optional[Tuple[int, int]]:
-        """Choose the best placement for a block.
+    def _calculate_compactness(self, board: Board) -> float:
+        """Calculate how compactly blocks are placed.
         
         Args:
-            engine: The game engine
-            block_index: Index of the block to place
-            rotation: Rotation to apply to the block
+            board: Board to evaluate
             
         Returns:
-            Tuple of (row, col) for best placement or None if no valid placement
+            Compactness score (higher is better)
         """
-        best_moves: List[Tuple[int, int]] = []
-        best_score = -1
+        # Count total filled cells
+        filled_cells = sum(sum(row) for row in board.grid)
         
-        # Get all valid placements for this block+rotation
-        valid_placements = engine.get_valid_placements(block_index, rotation)
+        # Count the number of adjacent filled cell pairs
+        adjacent_count = 0
+        for r in range(board.rows):
+            for c in range(board.cols):
+                if board.grid[r][c] == 1:
+                    # Check right neighbor
+                    if c + 1 < board.cols and board.grid[r][c+1] == 1:
+                        adjacent_count += 1
+                    # Check bottom neighbor
+                    if r + 1 < board.rows and board.grid[r+1][c] == 1:
+                        adjacent_count += 1
         
-        if not valid_placements:
-            return None
-            
-        # Score each placement using edge hugging heuristic
-        for r, c in valid_placements:
-            # Calculate edge score
-            edge_score = self._calculate_edge_score(engine, r, c, block_index, rotation)
-            
-            # Check if we clear any lines as a secondary objective
-            from copy import deepcopy
-            tmp_board = deepcopy(engine.board)
-            
-            # Get the block with rotation
-            block_list = engine.get_preview_blocks()
-            if not 0 <= block_index < len(block_list):
-                continue
-                
-            block, _ = block_list[block_index]
-            rotated_block = block.rotate_clockwise(rotation)
-            
-            # Place the block
-            tmp_board.place_block(rotated_block, r, c)
-            
-            # Check how many lines would be cleared
-            cleared = tmp_board.clear_full_lines()
-            clear_score = cleared * 10  # Weigh line clears more heavily
-            
-            # Combined score
-            score = edge_score + clear_score
-            
-            if score > best_score:
-                best_score = score
-                best_moves = [(r, c)]
-            elif score == best_score:
-                best_moves.append((r, c))
-                
-        # If we have multiple moves with the same score, pick the leftmost one
-        if best_moves:
-            best_moves.sort(key=lambda pos: pos[1])  # Sort by column
-            return best_moves[0]
-                
-        return None 
+        # Calculate compactness as ratio of adjacent pairs to filled cells
+        max_adjacent = 2 * filled_cells - board.rows - board.cols
+        compactness = adjacent_count / max_adjacent if max_adjacent > 0 else 0
+        
+        return compactness * 100  # Scale to a larger range 

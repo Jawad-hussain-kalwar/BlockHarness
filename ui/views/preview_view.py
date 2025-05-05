@@ -33,30 +33,9 @@ class PreviewView:
         y3 = y1
         self.preview_rects.append(pygame.Rect(x3, y3, preview_block_size, preview_block_size))
     
-    def get_rotated_cells(self, block: Block, rotation: int) -> List[Tuple[int, int]]:
-        """Return rotated cell positions based on rotation (0-3)"""
-        if rotation == 0:
-            return block.cells
-        
-        rotated_cells = []
-        for r, c in block.cells:
-            if rotation == 1:  # 90 degrees clockwise
-                rotated_cells.append((c, -r + block.height - 1))
-            elif rotation == 2:  # 180 degrees
-                rotated_cells.append((-r + block.height - 1, -c + block.width - 1))
-            elif rotation == 3:  # 270 degrees clockwise
-                rotated_cells.append((-c + block.width - 1, r))
-                
-        return rotated_cells
-    
-    def get_block_with_rotation(self, block: Block, rotation: int) -> Block:
-        """Create a new block with rotated cells"""
-        rotated_block = Block(self.get_rotated_cells(block, rotation))
-        return rotated_block
-    
     def draw(self, surface, preview_blocks, selected_index):
         # Draw the preview blocks
-        for i, (block, rotation) in enumerate(preview_blocks):
+        for i, block in enumerate(preview_blocks):
             if i >= len(self.preview_rects):
                 break
                 
@@ -65,11 +44,9 @@ class PreviewView:
             # Draw debug border if enabled
             draw_debug_rect(surface, preview_rect, "preview")
             
-            rotated_block = self.get_block_with_rotation(block, rotation)
-            
-            # Calculate the max dimensions of the rotated block
-            max_width = max(c for _, c in rotated_block.cells) + 1 if rotated_block.cells else 1
-            max_height = max(r for r, _ in rotated_block.cells) + 1 if rotated_block.cells else 1
+            # Calculate the max dimensions of the block
+            max_width = max(c for _, c in block.cells) + 1 if block.cells else 1
+            max_height = max(r for r, _ in block.cells) + 1 if block.cells else 1
             
             # Calculate centering offset
             offset_x = preview_rect.x + (self.preview_block_size - max_width * self.preview_cell_size) // 2
@@ -81,7 +58,7 @@ class PreviewView:
             pygame.draw.rect(surface, YELLOW if i == selected_index else PREVIEW_BOX_BORDER, preview_rect, 2)
             
             # Draw block cells
-            for r, c in rotated_block.cells:
+            for r, c in block.cells:
                 cell_rect = pygame.Rect(
                     offset_x + c * self.preview_cell_size,
                     offset_y + r * self.preview_cell_size,

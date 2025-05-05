@@ -5,10 +5,23 @@ Provides a common interface for component discovery, registration, and instantia
 import importlib
 import inspect
 import os
-from typing import Dict, List, Type, Tuple, Any, Optional, TypeVar, Generic, Callable
+from typing import Dict, List, Type, Tuple, Any, Optional, TypeVar, Generic, Callable, Protocol, Union
 
 
-# Define generic type for base classes
+# Define a protocol for components that have a name attribute
+class Named(Protocol):
+    """Protocol for objects with a name attribute or method."""
+    @property
+    def name(self) -> str: ...
+
+
+# Define a protocol for components that have a display_name attribute
+class DisplayNamed(Protocol):
+    """Protocol for objects with a display_name attribute."""
+    display_name: str
+
+
+# Define generic type for base classes with name and display_name
 T = TypeVar('T')
 
 class Registry(Generic[T]):
@@ -41,11 +54,18 @@ class Registry(Generic[T]):
         """
         if directory is None:
             # Get the directory of the base class's module
-            directory = os.path.dirname(inspect.getmodule(self._base_class).__file__)
+            base_module = inspect.getmodule(self._base_class)
+            if base_module is None:
+                raise ValueError("Could not determine module for base class")
+            module_file = getattr(base_module, "__file__", None)
+            if module_file is None:
+                raise ValueError("Could not determine file for base class module")
+            directory = os.path.dirname(module_file)
         
         if package is None:
             # Get the package name of the base class
-            package = self._base_class.__module__.split('.')[0]
+            base_module_name = self._base_class.__module__
+            package = base_module_name.split('.')[0]
         
         # Get the base filename to exclude
         base_filename = os.path.basename(inspect.getfile(self._base_class))
@@ -80,18 +100,21 @@ class Registry(Generic[T]):
         """
         # Try to get the name attribute from the class or an instance
         try:
-            # First try the class itself for a name property or attribute
-            if hasattr(component_class, 'name') and isinstance(component_class.name, property):
-                # It's a property, so we need to instantiate
-                component = component_class()
-                name = component.name
-            elif hasattr(component_class, 'name') and callable(getattr(component_class, 'name')):
-                # It's a method, so we need to instantiate
-                component = component_class()
-                name = component.name()
-            elif hasattr(component_class, 'name'):
-                # It's a class attribute
-                name = component_class.name
+            # Get name in various ways, with appropriate type checks
+            if hasattr(component_class, 'name'):
+                # Check if it's a property
+                name_attr = getattr(component_class, 'name')
+                if isinstance(name_attr, property):
+                    # It's a property, instantiate to get value
+                    component_instance = component_class()
+                    name = component_instance.name
+                elif callable(name_attr):
+                    # It's a method, instantiate to call it
+                    component_instance = component_class()
+                    name = component_instance.name()
+                else:
+                    # It's a class attribute
+                    name = component_class.name
             else:
                 # Use the class name as fallback
                 name = component_class.__name__
@@ -117,7 +140,7 @@ class Registry(Generic[T]):
         self._ensure_initialized()
         return self._items[name]
     
-    def create(self, name: str, *args, **kwargs) -> T:
+    def create(self, name: str, *args: Any, **kwargs: Any) -> T:
         """Create an instance of a component by name.
         
         Args:

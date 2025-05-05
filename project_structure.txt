@@ -1,0 +1,1359 @@
+.:
+  overlap.py:
+    load_gitignore(root)
+    should_ignore(path, patterns, root)
+        # Determine if a path should be ignored based on .gitignore patterns.
+    parse_file(path)
+        # Parse a Python file to extract classes and functions with signatures, return types, and docstrings.
+        # Returns:
+        #     classes: list of dicts {name: str, methods: [method_info]}
+        #     functions: list of method_info
+        # where method_info is dict(name, args, return, docstring)
+    _get_func_info(node: ast.FunctionDef)
+        # Extract information from a FunctionDef node.
+    write_info(out, indent, info)
+        # Write a function or method info dict to output with given indent.
+    main(root, output)
+  play.py:
+    main()
+
+ai:
+  base_player.py:
+    Class: BaseAIPlayer
+      __init__(self)
+          # Initialize the AI player.
+      name(self) -> str
+          # Get the name of the AI player.
+          # 
+          # The default implementation uses the class name, but subclasses
+          # can override this to provide a more meaningful display name.
+      description(self) -> str
+          # Get a description of the AI player's strategy.
+          # 
+          # This should be overridden by subclasses to provide a description
+          # of the AI player's strategy.
+      choose_move(self, engine: GameEngine, block_index: int) -> Optional[Tuple[int, int]]
+          # Choose the best placement for a block.
+          # 
+          # Args:
+          #     engine: The game engine
+          #     block_index: Index of the block to place
+          #     
+          # Returns:
+          #     Tuple of (row, col) for best placement or None if no valid placement
+  EdgeHugging.py:
+    Class: EdgeHugging
+      name(self) -> str
+      description(self) -> str
+      choose_move(self, engine: GameEngine, block_index: int) -> Optional[Tuple[int, int]]
+          # Choose the best placement for the specified block.
+          # 
+          # Args:
+          #     engine: Game engine 
+          #     block_index: Index of the block to place
+          #     
+          # Returns:
+          #     Tuple of (row, col) for best placement, or None if no valid placement
+      _calculate_edge_score(self, board: Board) -> float
+          # Calculate how well blocks are placed along edges.
+          # 
+          # Args:
+          #     board: Board to evaluate
+          #     
+          # Returns:
+          #     Edge score (higher is better)
+      _calculate_compactness(self, board: Board) -> float
+          # Calculate how compactly blocks are placed.
+          # 
+          # Args:
+          #     board: Board to evaluate
+          #     
+          # Returns:
+          #     Compactness score (higher is better)
+  Greedy1.py:
+    Class: Greedy1
+      name(self) -> str
+      description(self) -> str
+      choose_move(self, engine: GameEngine, block_index: int) -> Optional[Tuple[int, int]]
+          # Choose the best placement for a block.
+          # 
+          # Args:
+          #     engine: The game engine
+          #     block_index: Index of the block to place
+          #     
+          # Returns:
+          #     Tuple of (row, col) for best placement or None if no valid placement
+  Random.py:
+    Class: Random
+      name(self) -> str
+      description(self) -> str
+      choose_move(self, engine: GameEngine, block_index: int) -> Optional[Tuple[int, int]]
+          # Choose a random valid placement for a block.
+          # 
+          # Args:
+          #     engine: The game engine
+          #     block_index: Index of the block to place
+          #     
+          # Returns:
+          #     Tuple of (row, col) for random valid placement or None if no valid placement
+  registry.py:
+    Class: AIRegistry
+      __init__(self)
+      register(self, name: str, player_class: Type[BaseAIPlayer]) -> None
+          # Register an AI player implementation.
+          # 
+          # Args:
+          #     name: Name of the AI player
+          #     player_class: Class for the AI player
+      create_player(self, name: str) -> BaseAIPlayer
+          # Create a new instance of the specified AI player.
+          # 
+          # Args:
+          #     name: Name of the AI player to create
+          #     
+          # Returns:
+          #     New instance of the specified AI player
+          #     
+          # Raises:
+          #     KeyError: If no player with the specified name is registered
+      get_available_players(self) -> List[Tuple[str, str]]
+          # Get a list of registered AI players for UI display.
+          # 
+          # Returns:
+          #     List of (value, display_text) tuples for registered AI players
+    Class: AIPlayerRegistry
+      __init__(self)
+          # Initialize the AI player registry.
+      _discover_player_classes(self) -> None
+          # Discover all AI player classes in the ai directory.
+      _register_player_class(self, player_class: Type[BaseAIPlayer]) -> None
+          # Register an AI player class.
+          # 
+          # Args:
+          #     player_class: The AI player class to register
+      get_player_class(self, name: str)
+          # Get an AI player class by name.
+          # 
+          # Args:
+          #     name: The name of the AI player
+          #     
+          # Returns:
+          #     The AI player class
+          #     
+          # Raises:
+          #     KeyError: If no AI player with the given name exists
+      create_player(self, name: str) -> BaseAIPlayer
+          # Create an instance of an AI player by name.
+          # 
+          # Args:
+          #     name: The name of the AI player
+          #     
+          # Returns:
+          #     An instance of the AI player
+          #     
+          # Raises:
+          #     KeyError: If no AI player with the given name exists
+      get_available_players(self) -> List[Tuple[str, str]]
+          # Get a list of available AI players with their names and descriptions.
+          # 
+          # Returns:
+          #     A list of tuples (name, description) for each available AI player
+
+config:
+  cli.py:
+    parse_args()
+
+controllers:
+  ai_controller.py:
+    Class: AIController
+      __init__(self, config: Dict, ai_player_name: Optional[str])
+          # Initialize the AI controller with the provided configuration.
+          # 
+          # Args:
+          #     config: Game configuration dictionary
+          #     ai_player_name: Optional name of the AI player to use. If None, uses the default Greedy AI.
+      set_ai_player(self, ai_player_name: str) -> bool
+          # Set the AI player to use.
+          # 
+          # Args:
+          #     ai_player_name: Name of the AI player to use
+          #     
+          # Returns:
+          #     True if the AI player was set successfully, False otherwise
+      get_ai_player_name(self) -> str
+          # Get the name of the current AI player.
+          # 
+          # Returns:
+          #     The name of the current AI player
+      step(self) -> bool
+          # Perform a single AI-driven game step.
+          # 
+          # Returns:
+          #     bool: True if a block was placed, False if game over or no move available
+      run_simulation(self, num_steps: int) -> Dict
+          # Run the AI simulation for a specified number of steps or until game over.
+          # 
+          # Args:
+          #     num_steps: Number of steps to run, or -1 for unlimited
+          #     
+          # Returns:
+          #     Dictionary containing final game state information
+  base_controller.py:
+    Class: BaseController
+      __init__(self, config: Dict)
+          # Initialize the controller with the provided configuration.
+          # 
+          # Args:
+          #     config: Game configuration dictionary
+      reset_engine(self, preserve_config: bool) -> None
+          # Re-initialize the game engine and clear controller flags.
+          # 
+          # Args:
+          #     preserve_config: If True, keep the current configuration
+          #                     If False, also reset config (not implemented yet)
+      restart_game(self)
+          # Reset the game with the current configuration.
+      update_config(self, new_config: Dict) -> bool
+          # Update the game configuration and restart.
+          # 
+          # Args:
+          #     new_config: New configuration parameters
+          #     
+          # Returns:
+          #     bool: True if successfully applied, False otherwise
+      select_block(self, index: int) -> bool
+          # Select a block from the preview.
+          # 
+          # Args:
+          #     index: Index of the block to select
+          #     
+          # Returns:
+          #     bool: True if successful, False otherwise
+      place_block(self, row: int, col: int) -> bool
+          # Place the currently selected block at the specified position.
+          # 
+          # Args:
+          #     row: Row position
+          #     col: Column position
+          #     
+          # Returns:
+          #     bool: True if successfully placed, False otherwise
+      find_next_valid_block(self) -> Optional[int]
+          # Find the next placeable block in the preview.
+          # 
+          # Returns:
+          #     Index of the valid block or None if no block can be placed
+      get_game_metrics(self) -> Dict
+          # Get the current game metrics.
+          # 
+          # Returns:
+          #     Dictionary containing all game metrics
+      get_game_state(self) -> Dict
+          # Get the current game state as a dictionary.
+          # 
+          # Returns:
+          #     Dictionary containing game state information
+  game_controller.py:
+    Class: GameController
+      __init__(self, config: Dict)
+      apply_config_changes(self) -> bool
+          # Apply changes from the sidebar config inputs.
+      handle_board_click(self, grid_pos: Tuple[int, int]) -> bool
+          # Handle click on the game board to place a block.
+      handle_preview_click(self, preview_index: int) -> bool
+          # Handle click on the preview area to select a block.
+      save_game_stats(self) -> None
+          # Save current game stats to CSV when game is over.
+      restart_game(self) -> None
+          # Reset the game with the current configuration.
+      _handle_core_events(self) -> bool
+          # Process core user input events. Protected method for reuse by subclasses.
+      _draw_core(self, simulation_running, current_run, simulation_runs) -> None
+          # Core drawing logic. Protected method for reuse by subclasses.
+      _loop_core(self, custom_step_handler) -> None
+          # Core game loop logic. Protected method for reuse by subclasses.
+          # 
+          # Args:
+          #     custom_step_handler: Optional function to run custom per-frame logic
+      handle_events(self) -> bool
+          # Process user input events.
+      draw(self) -> None
+          # Render the game state to the screen.
+      loop(self) -> None
+          # Main game loop.
+  refactored_base_controller.py:
+    Class: RefactoredBaseController
+      __init__(self, config: Dict)
+          # Initialize the controller.
+          # 
+          # Args:
+          #     config: Optional initial configuration
+      _on_config_updated(self, config: Dict) -> None
+          # Handle configuration updates.
+          # 
+          # Args:
+          #     config: The updated configuration
+      _check_engine_reset(self) -> None
+          # Check if the engine needs to be reset due to config changes.
+          # 
+          # This method should be overridden by subclasses to implement
+          # engine reset logic based on configuration changes.
+      reset_engine(self, preserve_config: bool) -> None
+          # Re-initialize the game engine and clear controller flags.
+          # 
+          # Args:
+          #     preserve_config: If True, keep the current configuration
+      restart_game(self)
+          # Reset the game with the current configuration.
+      update_config(self, new_config: Dict) -> bool
+          # Update the game configuration and restart.
+          # 
+          # Args:
+          #     new_config: New configuration parameters
+          #     
+          # Returns:
+          #     bool: True if successfully applied, False otherwise
+      select_block(self, index: int) -> bool
+          # Select a block from the preview.
+          # 
+          # Args:
+          #     index: Index of the block to select
+          #     
+          # Returns:
+          #     bool: True if successful, False otherwise
+      place_block(self, row: int, col: int) -> bool
+          # Place the currently selected block at the specified position.
+          # 
+          # Args:
+          #     row: Row position
+          #     col: Column position
+          #     
+          # Returns:
+          #     bool: True if successfully placed, False otherwise
+      find_next_valid_block(self) -> Optional[int]
+          # Find the next placeable block in the preview.
+          # 
+          # Returns:
+          #     Index of the valid block or None if no block can be placed
+      get_game_metrics(self) -> Dict
+          # Get the current game metrics.
+          # 
+          # Returns:
+          #     Dictionary containing all game metrics
+      get_game_state(self) -> Dict
+          # Get the current game state as a dictionary.
+          # 
+          # Returns:
+          #     Dictionary containing game state information
+      setup_event_handling(self) -> None
+          # Set up event handling with the event manager.
+          # 
+          # This method should be overridden by subclasses to register
+          # their event handlers with the event manager.
+      _on_quit(self, event) -> bool
+          # Handle quit events.
+          # 
+          # Args:
+          #     event: The quit event
+          #     
+          # Returns:
+          #     False to indicate the application should quit
+      handle_events(self) -> bool
+          # Process user input events.
+          # 
+          # Returns:
+          #     True to continue, False to quit
+  simulation_controller.py:
+    Class: SimulationController
+      __init__(self, config: Dict)
+      restart_simulation(self)
+          # Restart the game but preserve simulation state variables
+      start_simulation(self)
+          # Start the AI simulation at the specified steps per second
+      abort_simulation(self)
+          # Stop the AI simulation and allow manual play
+      run_simulation_step(self)
+          # Execute one AI step in the simulation
+      save_simulation_stats(self, run_stats: Dict) -> None
+          # Save simulation run statistics to CSV.
+      get_available_ai_players(self)
+          # Get a list of available AI players.
+          # 
+          # Returns:
+          #     A list of (value, display_text) tuples for use in a dropdown menu
+      get_available_dda_algorithms(self)
+          # Get a list of available DDA algorithms.
+          # 
+          # Returns:
+          #     A list of (value, display_text) tuples for use in a dropdown menu
+      apply_config_changes(self)
+          # Apply configuration changes from the main view.
+      _handle_simulation_sidebar_actions(self, ui_action: Dict) -> None
+          # Handle simulation-specific sidebar actions.
+      handle_events(self) -> bool
+          # Process user input events with simulation-specific handling.
+      draw(self) -> None
+          # Render the game state with simulation information to the screen.
+      _simulation_step_handler(self) -> None
+          # Handle simulation steps with the appropriate timing.
+      loop(self)
+          # Main game loop with simulation capabilities.
+
+data:
+  stats_manager.py:
+    Class: StatsManager
+      __init__(self, stats_file: str)
+          # Initialize the stats manager.
+          # 
+          # Args:
+          #     stats_file: Name of the CSV file for stats (will be stored in the data directory)
+      _create_stats_file(self) -> None
+          # Create the stats CSV file with headers.
+      save_stats(self, stats: Dict[str, Union[int, float]]) -> None
+          # Save game statistics to the CSV file.
+          # 
+          # Args:
+          #     stats: Dictionary containing game statistics (score, lines, blocks_placed)
+      get_stats(self) -> List[Dict[str, Union[str, int, float]]]
+          # Get all stats from the CSV file.
+          # 
+          # Returns:
+          #     List of dictionaries containing game statistics
+
+dda:
+  base_dda.py:
+    Class: BaseDDAAlgorithm
+      initialize(self, config_params: Dict) -> None
+          # Initialize algorithm with configuration parameters.
+      maybe_adjust(self, engine_state) -> Optional[List[int]]
+          # Check game state and return new weights if adjustment needed.
+          # 
+          # Args:
+          #     engine_state: The current game engine state
+          #     
+          # Returns:
+          #     Optional[List[int]]: New shape weights if adjustment needed, None otherwise
+      get_next_blocks(self, engine_state, count: int) -> List[Block]
+          # Default implementation that uses maybe_adjust() and weighted random selection.
+          # DDA algorithms should override this with their own implementation.
+          # 
+          # Args:
+          #     engine_state: The current game engine state
+          #     count: Number of blocks to generate (default 3)
+          #     
+          # Returns:
+          #     List[Block]: The specific blocks to be spawned in the preview tray
+      name(self) -> str
+          # Return algorithm name.
+  interval_dda.py:
+    Class: IntervalDDA
+      __init__(self)
+          # Initialize the interval DDA algorithm.
+      initialize(self, config_params: Dict) -> None
+          # Initialize with configuration parameters.
+          # 
+          # Args:
+          #     config_params: Dictionary containing configuration parameters.
+          #         Expected keys:
+          #         - steps_to_rescue: Number of trays after which rescue blocks are spawned
+          #         - rescue_block_count: Number of rescue blocks to include
+          #         - steps_to_awkward: Number of trays after which awkward blocks are spawned
+          #         - awkward_block_count: Number of awkward blocks to include
+      maybe_adjust(self, engine_state) -> Optional[List[int]]
+          # Check game state and return new weights if adjustment needed.
+          # 
+          # Args:
+          #     engine_state: The current game engine state
+          #     
+          # Returns:
+          #     Optional[List[int]]: New shape weights if adjustment needed, None otherwise
+      get_next_blocks(self, engine_state, count: int) -> List[Block]
+          # Get the next blocks based on the interval pattern.
+          # 
+          # This provides rescue or awkward blocks at specific intervals,
+          # giving direct control over specific shapes instead of just weights.
+          # 
+          # Args:
+          #     engine_state: The current game engine state
+          #     count: Number of blocks to generate
+          #     
+          # Returns:
+          #     List[Block]: The specific blocks to be spawned
+  metrics_dda.py:
+    Class: MetricsDDA
+      __init__(self)
+          # Initialize the metrics-based DDA algorithm.
+      initialize(self, config_params: Dict) -> None
+          # Initialize algorithm with configuration parameters.
+      maybe_adjust(self, engine_state) -> Optional[List[int]]
+          # Check game state and return new weights if adjustment needed.
+      get_next_blocks(self, engine_state, count: int) -> List[Block]
+          # Get the next blocks based on current game metrics.
+          # 
+          # Args:
+          #     engine_state: The current game engine state
+          #     count: Number of blocks to generate
+          #     
+          # Returns:
+          #     List[Block]: The specific blocks to be spawned
+      _get_shape_size(self, shape) -> int
+          # Calculate the effective size of a shape.
+          # 
+          # Args:
+          #     shape: The shape definition (list of coordinate tuples)
+          #     
+          # Returns:
+          #     int: Size metric of the shape
+      _get_emergency_weights(self) -> List[int]
+          # Get weights for emergency mode - only smallest shapes.
+      _get_rescue_weights(self) -> List[int]
+          # Get weights for rescue mode - favor small shapes.
+      _get_normal_weights(self, phase: str) -> List[int]
+          # Get weights for normal mode based on difficulty and phase.
+  registry.py:
+    Class: DDAlgorithmRegistry
+      __init__(self)
+          # Initialize the DDA algorithm registry.
+      create_algorithm(self, name: str) -> BaseDDAAlgorithm
+          # Create an instance of a DDA algorithm.
+          # 
+          # Args:
+          #     name: The name of the algorithm to create
+          #     
+          # Returns:
+          #     An instance of the specified algorithm
+          #     
+          # Raises:
+          #     KeyError: If the algorithm is not registered
+      get_available_algorithms(self) -> List[Tuple[str, str]]
+          # Get a list of available DDA algorithms.
+          # 
+          # Returns:
+          #     A list of (value, display_text) tuples for use in a dropdown menu
+  static_dda.py:
+    Class: StaticDDA
+      __init__(self)
+          # Initialize the static DDA algorithm.
+      initialize(self, config_params: Dict) -> None
+          # Initialize with fixed weights configuration.
+          # 
+          # Args:
+          #     config_params: Dictionary containing configuration parameters.
+          #         Expected to have a 'weights' key with a list of initial weights.
+      maybe_adjust(self, engine_state) -> Optional[List[int]]
+          # Static DDA never adjusts weights.
+          # 
+          # Args:
+          #     engine_state: The current game engine state
+          #     
+          # Returns:
+          #     None, as static DDA never adjusts weights
+      get_next_blocks(self, engine_state, count: int) -> List[Block]
+          # Get the next blocks based on static weights.
+          # 
+          # Args:
+          #     engine_state: The current game engine state
+          #     count: Number of blocks to generate
+          #     
+          # Returns:
+          #     List[Block]: The specific blocks to be spawned
+  threshold_dda.py:
+    Class: ThresholdDDA
+      __init__(self)
+          # Initialize the threshold DDA algorithm.
+      initialize(self, config_params: Dict) -> None
+          # Initialize with threshold configuration.
+          # 
+          # Args:
+          #     config_params: Dictionary containing configuration parameters.
+          #         Expected to have a 'thresholds' key with a list of
+          #         (score, weights) tuples.
+      maybe_adjust(self, engine_state) -> Optional[List[int]]
+          # Adjust weights when crossing a threshold.
+          # 
+          # Args:
+          #     engine_state: The current game engine state
+          #     
+          # Returns:
+          #     A new list of shape weights if a threshold was crossed,
+          #     None otherwise
+      get_next_blocks(self, engine_state, count: int) -> List[Block]
+          # Get the next blocks based on threshold-adjusted weights.
+          # 
+          # Args:
+          #     engine_state: The current game engine state
+          #     count: Number of blocks to generate
+          #     
+          # Returns:
+          #     List[Block]: The specific blocks to be spawned
+
+engine:
+  block.py:
+    Class: Block
+      __init__(self, cells: List[Tuple[int, int]]) -> None
+  block_pool.py:
+    Class: BlockPool
+      __init__(self, shapes: Dict[str, List[Tuple[int, int]]], weights: List[int])
+          # Initialize the block pool with shapes and weights.
+          # 
+          # Args:
+          #     shapes: Dictionary of shape definitions mapped by name
+          #     weights: List of weights for each shape (should match order of shapes.keys())
+      sample(self) -> Block
+          # Sample a random block based on shape weights.
+          # 
+          # Returns:
+          #     Block: A new block with randomly selected shape
+      get_block(self) -> Block
+          # Get a block based on the current weights.
+          # 
+          # Returns:
+          #     Block: A new block with randomly selected shape
+  board.py:
+    Class: Board
+      __init__(self, rows: int, cols: int) -> None
+      from_grid(grid: List[List[int]]) -> 'Board'
+          # Create a new Board instance from an existing grid.
+          # 
+          # Args:
+          #     grid: 2D list representing the board state
+          #     
+          # Returns:
+          #     New Board instance with the provided grid
+      can_place(self, block, top: int, left: int) -> bool
+          # True if every cell fits inside the board and is currently empty.
+      place_block(self, block, top: int, left: int) -> None
+          # Write block cells into the grid (assumes can_place is True).
+      find_full_lines(self) -> Set[Tuple[int, int]]
+          # Find all cells that are part of full rows or columns.
+          # 
+          # Returns:
+          #     Set of (row, col) tuples that are part of full lines.
+      clear_cells(self, cells: Set[Tuple[int, int]]) -> None
+          # Clear specific cells from the grid.
+          # 
+          # Args:
+          #     cells: Set of (row, col) tuples to clear
+      clear_full_lines(self) -> int
+          # Clear any full rows/cols; return number of lines removed.
+  game_engine.py:
+    Class: GameEngine
+      __init__(self, config: Dict)
+      compute_line_score(cells: int) -> int
+          # Calculate score based on number of cells cleared.
+          # 
+          # Args:
+          #     cells: Number of cells cleared
+          #     
+          # Returns:
+          #     int: Score awarded for clearing those cells
+      get_board_state(self) -> List[List[int]]
+          # Get the current board grid state (read-only).
+      get_preview_blocks(self) -> List[Block]
+          # Get the current preview blocks (read-only).
+      get_selected_preview_index(self) -> Optional[int]
+          # Get the index of the currently selected preview block.
+      get_metrics(self) -> Dict
+          # Get all current metrics.
+          # 
+          # Returns:
+          #     Dict: All current metrics data
+      select_preview_block(self, index: int) -> bool
+          # Select a block from the preview by index.
+          # 
+          # Args:
+          #     index: Index of the block to select (0-based)
+          #     
+          # Returns:
+          #     bool: True if successfully selected, False otherwise
+      get_valid_placements(self, block_index: Optional[int]) -> Set[Tuple[int, int]]
+          # Get all valid (row, col) positions where the specified block can be placed.
+          # 
+          # Args:
+          #     block_index: Index of the preview block (defaults to selected block)
+          #     
+          # Returns:
+          #     Set of (row, col) tuples where the block can be placed
+      place_selected_block(self, row: int, col: int) -> bool
+          # Place the currently selected block at the specified position.
+          # 
+          # Args:
+          #     row: Row position (0-based, from top)
+          #     col: Column position (0-based, from left)
+          #     
+          # Returns:
+          #     bool: True if successfully placed, False otherwise
+      update_animations(self) -> None
+          # Update all running animations and clear lines if animations complete.
+      is_animating(self) -> bool
+          # Check if any animations are currently running.
+      get_cell_opacity(self, row: int, col: int) -> Optional[float]
+          # Get the opacity (0-1) for a cell if it's being animated.
+      find_next_placeable_block(self) -> Optional[int]
+          # Find the next preview block that can be placed somewhere on the board.
+          # 
+          # Returns:
+          #     Index of placeable block or None if no blocks can be placed
+      game_over(self) -> bool
+          # True if game is over (no valid moves remain).
+      _spawn(self) -> Block
+          # Create a new block using the DDA algorithm.
+      _refill_preview(self, target_count)
+          # Refill the preview area with blocks up to the target count.
+      _has_valid_placement(self, block: Block) -> bool
+          # Check if a block can be placed anywhere on the board.
+          # 
+          # Returns:
+          #     True if the block can be placed, False otherwise
+      _check_game_over(self) -> bool
+          # Check if the game is over (no valid moves remain).
+      _count_lines_from_cells(self, cells: Set[Tuple[int, int]]) -> int
+          # Count unique lines from a set of cells.
+          # 
+          # Args:
+          #     cells: Set of (row, col) tuples
+          #     
+          # Returns:
+          #     int: Number of unique lines (rows + columns)
+      _maybe_update_difficulty(self)
+          # Update difficulty - maintained for backward compatibility.
+          # 
+          # Note: This method is primarily kept for backward compatibility.
+          # Modern DDA algorithms will handle difficulty adjustment directly.
+
+ui:
+  animation.py:
+    Class: Animation
+      __init__(self, duration_ms: int)
+      start(self)
+          # Start the animation
+      update(self) -> bool
+          # Update animation state
+          # 
+          # Returns:
+          #     bool: True if animation is complete, False otherwise
+      get_progress(self) -> float
+          # Get animation progress as a value from 0.0 to 1.0
+    Class: FadeoutAnimation
+      __init__(self, cells: Set[Tuple[int, int]], duration_ms: int)
+      get_opacity(self) -> float
+          # Get current opacity value (1.0 to 0.0)
+    Class: AnimationManager
+      __init__(self)
+      add_animation(self, animation: Animation) -> None
+          # Add and start a new animation
+      update(self) -> None
+          # Update all animations and remove completed ones
+      update_animations(self) -> List[Animation]
+          # Update all animations and return completed ones.
+          # 
+          # Returns:
+          #     List[Animation]: List of animations that completed this update
+      is_animating(self) -> bool
+          # Check if any animations are active
+      has_animations(self) -> bool
+          # Check if any animations are active (alias for is_animating)
+      get_cell_opacity(self, row: int, col: int) -> Optional[float]
+          # Get opacity for a specific cell if it's being animated
+          # 
+          # Returns:
+          #     float: Opacity value or None if cell is not animating
+  debug.py:
+    draw_debug_rect(surface, rect, section_type)
+        # Draw a debug colored border around a rect for the given section type.
+  dropdown_menu.py:
+    Class: DropdownMenu
+      __init__(self, rect, options, default_index)
+          # Initialize a dropdown menu widget.
+          # 
+          # Args:
+          #     rect: The pygame.Rect for positioning and sizing the dropdown
+          #     options: List of (value, display_text) tuples for dropdown items
+          #     default_index: Index of the default selected option
+      get_selected_value(self)
+          # Get the value (not display text) of the currently selected option.
+      selected_value(self)
+          # Get the value (not display text) of the currently selected option.
+      selected_text(self)
+          # Get the display text of the currently selected option.
+      set_selected_value(self, value)
+          # Set the selected option by value.
+      update_dropdown_height(self)
+          # Update dropdown height when options change.
+      handle_event(self, event)
+          # Handle pygame events related to the dropdown menu.
+          # 
+          # Args:
+          #     event: The pygame event to handle
+          #     
+          # Returns:
+          #     bool: True if selection changed, False otherwise
+      ensure_selected_visible(self)
+          # Ensure the selected option is visible in the dropdown.
+      _truncate_text(self, text, font, max_width)
+          # Truncate text to fit within the specified width.
+          # 
+          # Args:
+          #     text: The text to truncate
+          #     font: The pygame font to use for measuring text width
+          #     max_width: The maximum width in pixels
+          #     
+          # Returns:
+          #     The truncated text
+      draw(self, surface, font)
+          # Draw the dropdown menu on the given surface.
+          # 
+          # Args:
+          #     surface: The pygame surface to draw on
+          #     font: The pygame font to use for text, uses default if None
+  font_manager.py:
+    Class: FontManager
+      __init__(self)
+      get_font(self, font_name, size)
+          # Get a font by name and size.
+          # 
+          # Args:
+          #     font_name: Name of the font file without extension (e.g., 'Ubuntu-Regular')
+          #     size: Font size in points
+          #     
+          # Returns:
+          #     pygame.font.Font object
+  input_field.py:
+    Class: InputField
+      __init__(self, rect, value, max_chars, numeric)
+      handle_event(self, event)
+      draw(self, surface, font)
+
+ui\views:
+  board_view.py:
+    Class: BoardView
+      __init__(self, board_origin, cell_size, board_size)
+      draw(self, surface, engine)
+      _draw_cell_with_opacity(self, surface: pygame.Surface, rect: pygame.Rect, color: Tuple[int, int, int], opacity: float) -> None
+          # Draw a cell with the specified opacity.
+          # 
+          # Args:
+          #     surface: Surface to draw on
+          #     rect: Rectangle to fill
+          #     color: RGB color tuple
+          #     opacity: Opacity value from 0.0 to 1.0
+  dda_section.py:
+    Class: DDASection
+      __init__(self, left_x, top_y, field_width, font, small_font)
+      update_config_fields(self, config)
+          # Update input fields from config.
+      update_dda_algorithm_dropdown(self, dda_algorithms)
+          # Update the DDA algorithm dropdown with available algorithms.
+          # 
+          # Args:
+          #     dda_algorithms: List of (name, description) tuples for available DDA algorithms
+      _update_active_dda_view(self, algorithm_name)
+          # Update the active DDA view based on the selected algorithm.
+      draw(self, surface)
+          # Draw the DDA section elements.
+      handle_event(self, event)
+          # Handle events for the DDA section.
+          # 
+          # Returns:
+          #     String: "apply" if apply button was clicked, None otherwise
+      get_config_values(self)
+          # Get the current configuration values from the DDA section.
+          # 
+          # Returns:
+          #     Dict: Configuration parameters, or None if validation fails
+      get_selected_dda_algorithm(self)
+          # Get the selected DDA algorithm from the dropdown.
+          # 
+          # Returns:
+          #     String: The selected DDA algorithm name, or None if no selection
+  game_section.py:
+    Class: GameSection
+      __init__(self, window_size, font, small_font)
+      draw(self, surface, engine)
+          # Draw all game section components.
+      handle_board_click(self, x, y)
+          # Handle click on the game board to place a block.
+          # 
+          # Args:
+          #     x: X coordinate of click
+          #     y: Y coordinate of click
+          #     
+          # Returns:
+          #     Boolean: True if board was clicked, False otherwise
+      handle_preview_click(self, x, y)
+          # Handle click on the preview area to select a block.
+          # 
+          # Args:
+          #     x: X coordinate of click
+          #     y: Y coordinate of click
+          #     
+          # Returns:
+          #     Integer: Index of clicked preview block, or None if no preview was clicked
+      is_restart_button_clicked(self, pos)
+          # Check if the restart button was clicked.
+          # 
+          # Args:
+          #     pos: (x, y) coordinates of click
+          #     
+          # Returns:
+          #     Boolean: True if restart button was clicked, False otherwise
+  hud_view.py:
+    Class: HudView
+      __init__(self, parent_rect, stats_height, font)
+      draw(self, surface, engine)
+  main_view.py:
+    Class: MainView
+      __init__(self, window_size)
+      create_sections(self)
+      handle_resize(self, new_size)
+          # Handle window resize events.
+      update_config_fields(self, config)
+          # Update DDA section input fields from config.
+      update_ai_player_dropdown(self, ai_players)
+          # Update the AI player dropdown with available AI players.
+      update_dda_algorithm_dropdown(self, dda_algorithms)
+          # Update the DDA algorithm dropdown with available algorithms.
+      draw(self, surface, engine, simulation_running, current_run, simulation_runs)
+          # Draw all UI sections.
+      handle_event(self, event)
+          # Handle UI-specific events for all sections.
+          # 
+          # Returns:
+          #     dict: Action and parameters if action needed, or None if no action
+      get_config_values(self)
+          # Get the current configuration values from the DDA section.
+      get_simulation_values(self)
+          # Get the current simulation values from the simulation section.
+      get_selected_dda_algorithm(self)
+          # Get the selected DDA algorithm from the dropdown.
+      handle_board_click(self, x, y)
+          # Handle click on the game board.
+      handle_preview_click(self, x, y)
+          # Handle click on the preview area.
+      is_restart_button_clicked(self, pos)
+          # Check if the restart button was clicked.
+  overlay_view.py:
+    Class: OverlayView
+      __init__(self, window_size, large_font, font)
+      draw_game_over(self, surface, engine)
+      is_restart_button_clicked(self, pos)
+          # Check if the restart button was clicked at the given position
+  preview_view.py:
+    Class: PreviewView
+      __init__(self, preview_origin, preview_cell_size, preview_block_size, padding_h, padding_v, gap)
+      draw(self, surface, preview_blocks, selected_index)
+  simulation_section.py:
+    Class: SimulationSection
+      __init__(self, left_x, top_y, field_width, font, small_font)
+      update_ai_player_dropdown(self, ai_players)
+          # Update the AI player dropdown with available AI players.
+          # 
+          # Args:
+          #     ai_players: List of (name, description) tuples for available AI players
+      draw(self, surface, simulation_running, current_run, simulation_runs)
+          # Draw the simulation section elements.
+      handle_event(self, event)
+          # Handle events for the simulation section.
+          # 
+          # Returns:
+          #     String: "simulate" or "abort" if corresponding button was clicked, None otherwise
+      get_simulation_values(self)
+          # Get the current simulation values from the section.
+          # 
+          # Returns:
+          #     Tuple of (steps_per_second, simulation_runs, ai_player_name)
+          #     or None if validation fails
+  state_section.py:
+    Class: StateSection
+      __init__(self, window_size, font, small_font)
+      draw(self, surface, engine)
+          # Draw the Game State section.
+          # 
+          # Args:
+          #     surface: Pygame surface to draw on
+          #     engine: Game engine instance
+      _handle_scrolling(self, surface, content_rect)
+          # Handle scrolling of metrics display.
+      handle_event(self, event)
+          # Handle events for the state section, like scrolling.
+
+ui\views\dda_views:
+  interval_dda_view.py:
+    Class: IntervalDDAView
+      __init__(self, parent_rect, font, small_font)
+          # Initialize the IntervalDDAView.
+          # 
+          # Args:
+          #     parent_rect: Rect of the parent section
+          #     font: Font for main labels
+          #     small_font: Font for smaller labels
+      update_config_fields(self, config)
+          # Update input fields from config.
+      draw(self, surface)
+          # Draw the IntervalDDA view elements.
+      handle_event(self, event)
+          # Handle events for the IntervalDDA view.
+      get_config_values(self)
+          # Get the current configuration values from the IntervalDDA view.
+          # 
+          # Returns:
+          #     Dict: Configuration parameters, or None if validation fails
+  metrics_dda_view.py:
+    Class: MetricsDDAView
+      __init__(self, parent_rect, font, small_font)
+          # Initialize the metrics DDA view with UI elements.
+          # 
+          # Args:
+          #     parent_rect: Rect of the parent section
+          #     font: Font for main labels
+          #     small_font: Font for smaller labels
+      update_config_fields(self, config: Dict) -> None
+          # Update input fields from config.
+          # 
+          # Args:
+          #     config: Configuration dictionary
+      draw(self, surface: pygame.Surface) -> None
+          # Draw the metrics DDA view elements.
+          # 
+          # Args:
+          #     surface: Pygame surface to draw on
+      get_config_values(self) -> Optional[Dict]
+          # Get the current configuration values from the metrics DDA view.
+          # 
+          # Returns:
+          #     Dict: Configuration parameters, or None if validation fails
+  static_dda_view.py:
+    Class: StaticDDAView
+      __init__(self, parent_rect, font, small_font)
+          # Initialize the StaticDDAView.
+          # 
+          # Args:
+          #     parent_rect: Rect of the parent section
+          #     font: Font for main labels
+          #     small_font: Font for smaller labels
+      update_config_fields(self, config)
+          # Update input fields from config.
+      draw(self, surface)
+          # Draw the StaticDDA view elements.
+      handle_event(self, event)
+          # Handle events for the StaticDDA view.
+          # 
+          # Note: We still process events but don't allow changing the values
+      get_config_values(self)
+          # Get the current configuration values from the StaticDDA view.
+          # 
+          # Returns:
+          #     Dict: Configuration parameters with static weights
+  template_dda_view.py:
+    Class: TemplateDDAView
+      __init__(self, parent_rect, font, small_font)
+          # Initialize the DDA view.
+          # 
+          # Args:
+          #     parent_rect: Rect of the parent section
+          #     font: Font for main labels
+          #     small_font: Font for smaller labels
+      update_config_fields(self, config)
+          # Update input fields from config.
+          # 
+          # Args:
+          #     config: The configuration dictionary
+      draw(self, surface)
+          # Draw the DDA view elements.
+          # 
+          # Args:
+          #     surface: The pygame surface to draw on
+      handle_event(self, event)
+          # Handle events for the DDA view.
+          # 
+          # Args:
+          #     event: The pygame event to handle
+      get_config_values(self)
+          # Get the current configuration values from the DDA view.
+          # 
+          # Returns:
+          #     Dict: Configuration parameters, or None if validation fails
+  th_dda_view.py:
+    Class: ThresholdDDAView
+      __init__(self, parent_rect, font, small_font)
+          # Initialize the ThresholdDDAView.
+          # 
+          # Args:
+          #     parent_rect: Rect of the parent section
+          #     font: Font for main labels
+          #     small_font: Font for smaller labels
+      update_config_fields(self, config)
+          # Update input fields from config.
+      draw(self, surface)
+          # Draw the ThresholdDDA view elements.
+      handle_event(self, event)
+          # Handle events for the ThresholdDDA view.
+      get_config_values(self)
+          # Get the current configuration values from the ThresholdDDA view.
+          # 
+          # Returns:
+          #     Dict: Configuration parameters, or None if validation fails
+
+utils:
+  config_manager.py:
+    Class: ConfigManager
+      __init__(self, initial_config: Optional[Dict[str, Any]])
+          # Initialize the configuration manager.
+          # 
+          # Args:
+          #     initial_config: Optional initial configuration dictionary
+      register_observer(self, observer: ConfigObserver, config_filter: Optional[ConfigFilter]) -> None
+          # Register an observer to be notified of configuration changes.
+          # 
+          # Args:
+          #     observer: Function to call when configuration changes
+          #     config_filter: Optional set of configuration keys to observe
+      unregister_observer(self, observer: ConfigObserver) -> bool
+          # Unregister an observer.
+          # 
+          # Args:
+          #     observer: Observer function to unregister
+          #     
+          # Returns:
+          #     True if the observer was found and removed, False otherwise
+      update(self, new_config: Dict[str, Any]) -> None
+          # Update the configuration with new values.
+          # 
+          # Args:
+          #     new_config: New configuration values to apply
+      set(self, key: str, value: Any) -> None
+          # Set a single configuration value.
+          # 
+          # Args:
+          #     key: Configuration key
+          #     value: New value
+      get(self, key: str, default: Any) -> Any
+          # Get a configuration value.
+          # 
+          # Args:
+          #     key: Configuration key
+          #     default: Default value if key does not exist
+          #     
+          # Returns:
+          #     The configuration value, or the default if the key does not exist
+      get_all(self) -> Dict[str, Any]
+          # Get the entire configuration dictionary.
+          # 
+          # Returns:
+          #     A copy of the configuration dictionary
+      _notify_observers(self, changed_keys: Set[str]) -> None
+          # Notify observers of configuration changes.
+          # 
+          # Args:
+          #     changed_keys: Set of configuration keys that have changed
+  event_manager.py:
+    Class: EventManager
+      __init__(self)
+          # Initialize the event manager.
+      register_handler(self, event_type: int, handler: EventHandlerFunction) -> None
+          # Register a handler for a specific event type.
+          # 
+          # Args:
+          #     event_type: Pygame event type to handle
+          #     handler: Function to call when the event occurs
+      register_quit_handler(self, handler: EventHandlerFunction) -> None
+          # Register a handler for QUIT events.
+          # 
+          # Args:
+          #     handler: Function to call when a QUIT event occurs
+      register_resize_handler(self, handler: EventHandlerFunction) -> None
+          # Register a handler for VIDEORESIZE events.
+          # 
+          # Args:
+          #     handler: Function to call when a VIDEORESIZE event occurs
+      register_global_handler(self, handler: EventHandlerFunction, event_filter: Optional[EventFilter]) -> None
+          # Register a handler that receives all events.
+          # 
+          # Args:
+          #     handler: Function to call for all events
+          #     event_filter: Optional set of event types to filter for
+      unregister_handler(self, event_type: int, handler: EventHandlerFunction) -> bool
+          # Unregister a handler for a specific event type.
+          # 
+          # Args:
+          #     event_type: Pygame event type
+          #     handler: Handler function to unregister
+          #     
+          # Returns:
+          #     True if the handler was found and removed, False otherwise
+      unregister_global_handler(self, handler: EventHandlerFunction) -> bool
+          # Unregister a global handler.
+          # 
+          # Args:
+          #     handler: Handler function to unregister
+          #     
+          # Returns:
+          #     True if the handler was found and removed, False otherwise
+      process_events(self) -> bool
+          # Process all pending pygame events.
+          # 
+          # Returns:
+          #     False if the application should quit, True otherwise
+  metrics_manager.py:
+    Class: MetricsManager
+      __init__(self, config: Dict)
+          # Initialize the metrics manager with config parameters.
+          # 
+          # Args:
+          #     config: Game configuration dictionary
+      start_move_timer(self) -> None
+          # Start timing a new move.
+      record_move_completion(self, lines_cleared: int) -> None
+          # Record completion of a move with timing.
+          # 
+          # Args:
+          #     lines_cleared: Number of lines cleared in this move
+      record_mistake(self) -> None
+          # Record an attempt to place a block where it doesn't fit.
+      update_game_state_metrics(self, board: Board, preview_blocks: List[Tuple[Block, int]]) -> None
+          # Update game state metrics based on current board and preview.
+          # 
+          # Args:
+          #     board: Current game board
+          #     preview_blocks: List of preview blocks with rotations
+      _update_game_analysis_metrics(self, board: Board, preview_blocks: List[Tuple[Block, int]]) -> None
+          # Update game analysis metrics based on the current board state.
+          # 
+          # Args:
+          #     board: Current game board
+          #     preview_blocks: List of preview blocks with rotations
+      _find_best_fit_block(self, board: Board, shapes: Dict[str, List[Tuple[int, int]]]) -> str
+          # Find block that clears the most lines when placed on the board.
+          # 
+          # Args:
+          #     board: Current game board
+          #     shapes: Dictionary of all possible block shapes
+          #     
+          # Returns:
+          #     String name of the best fit block or "None" if no block clears a line
+      _check_game_end_opportunity(self, board: Board, shapes: Dict[str, List[Tuple[int, int]]], preview_blocks: List[Block]) -> Tuple[bool, str]
+          # Check if game will end after placing the preview blocks.
+          # 
+          # Args:
+          #     board: Current game board
+          #     shapes: Dictionary of all possible block shapes  
+          #     preview_blocks: List of preview blocks
+          #     
+          # Returns:
+          #     Tuple of (opportunity_exists, game_over_block_name)
+      _create_future_board_with_preview(self, board: Board, preview_blocks: List[Block]) -> Optional[Board]
+          # Simulate placing all preview blocks on the board optimally.
+          # 
+          # Args:
+          #     board: Current game board
+          #     preview_blocks: List of preview blocks
+          #     
+          # Returns:
+          #     A simulated future board or None if simulation fails
+      _find_empty_clusters(self, board: Board) -> List[Set[Tuple[int, int]]]
+          # Find all connected empty regions on the board using BFS.
+          # 
+          # Args:
+          #     board: Current game board
+          #     
+          # Returns:
+          #     List of sets containing (row, col) coordinates for each empty cluster
+      _check_imminent_threat(self, board: Board, preview_blocks: List[Block]) -> bool
+          # Check if the next placeable block can be placed without causing game end.
+          # 
+          # Args:
+          #     board: Current game board
+          #     preview_blocks: List of preview blocks
+          #     
+          # Returns:
+          #     True if there is an imminent threat, False otherwise
+      _can_place_anywhere(self, board: Board, block: Block) -> bool
+          # Check if a block can be placed anywhere on the board.
+          # 
+          # Args:
+          #     board: Game board to check
+          #     block: Block to place
+          #     
+          # Returns:
+          #     True if the block can be placed somewhere, False otherwise
+      _update_perf_band(self) -> None
+          # Update performance band based on clear rate.
+      _update_player_level(self) -> None
+          # Update player level based on clear rate.
+      _update_emotional_state(self) -> None
+          # Update emotional state based on timing and clear rate.
+      _update_phase(self) -> None
+          # Update game phase based on move count.
+      _count_lines(self, cells: Set[Tuple[int, int]]) -> int
+          # Count the number of distinct rows and columns in a set of cells.
+          # 
+          # Args:
+          #     cells: Set of (row, col) tuples that would be cleared
+          #     
+          # Returns:
+          #     Number of distinct rows and columns
+      mistake_sw(self) -> int
+          # Get the number of mistakes in the sliding window.
+      get_all_metrics(self) -> Dict
+          # Get all metrics as a dictionary.
+          # 
+          # Returns:
+          #     Dictionary containing all current metrics
+  registry.py:
+    Class: Registry
+      __init__(self, base_class: Type[T], auto_discover: bool)
+          # Initialize the registry.
+          # 
+          # Args:
+          #     base_class: The base class that registered components must inherit from
+          #     auto_discover: Whether to automatically discover components on initialization
+      discover_components(self, directory: Optional[str], package: Optional[str]) -> None
+          # Discover all components in the specified directory that inherit from the base class.
+          # 
+          # Args:
+          #     directory: The directory to search in. If None, will use the directory of the base class.
+          #     package: The package name to use for imports. If None, will use the name of the base class's module.
+      register(self, component_class: Type[T]) -> None
+          # Register a component class.
+          # 
+          # Args:
+          #     component_class: The component class to register
+      get_class(self, name: str) -> Type[T]
+          # Get a component class by name.
+          # 
+          # Args:
+          #     name: The name of the component
+          #     
+          # Returns:
+          #     The component class
+          #     
+          # Raises:
+          #     KeyError: If no component with the given name exists
+      create(self, name: str, *args, **kwargs) -> T
+          # Create an instance of a component by name.
+          # 
+          # Args:
+          #     name: The name of the component
+          #     *args: Positional arguments to pass to the constructor
+          #     **kwargs: Keyword arguments to pass to the constructor
+          #     
+          # Returns:
+          #     An instance of the component
+          #     
+          # Raises:
+          #     KeyError: If no component with the given name exists
+      get_available_components(self, name_formatter: Optional[Callable[[Type[T]], str]]) -> List[Tuple[str, str]]
+          # Get a list of available components with their names and display names.
+          # 
+          # Args:
+          #     name_formatter: Optional function to format the display name of each component
+          #     
+          # Returns:
+          #     A list of tuples (name, display_name) for each available component
+      _ensure_initialized(self) -> None
+          # Ensure the registry is initialized.
+  window_metrics.py:
+    outer_from_client(w: int, h: int) -> tuple[int, int]
+        # Given desired *client* width/height, return the outer window size that
+        # produces it on the current platform.
+

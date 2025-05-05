@@ -34,15 +34,14 @@ class BaseAIPlayer(ABC):
         return "No description provided."
     
     @abstractmethod
-    def choose_move(self, engine: GameEngine, block_index: int, rotation: int) -> Optional[Tuple[int, int]]:
+    def choose_move(self, engine: GameEngine, block_index: int) -> Optional[Tuple[int, int]]:
         """Choose the best placement for a block.
         
         Args:
             engine: The game engine
             block_index: Index of the block to place
-            rotation: Rotation to apply to the block
             
         Returns:
             Tuple of (row, col) for best placement or None if no valid placement
         """
-        pass 
+        pass

@@ -1,13 +1,77 @@
 # controllers/simulation_controller.py
 import time
 import pygame
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 
 from controllers.game_controller import GameController 
 from controllers.ai_controller import AIController
 from ui.colours import BG_COLOR
 from ai.registry import registry as ai_registry
 from dda.registry import registry as dda_registry
+from data.stats_manager import StatsManager
+
+
+class SimulationStatsManager:
+    """Manages statistics for simulation runs"""
+    
+    def __init__(self):
+        """Initialize the simulation stats manager"""
+        self.stats_manager = StatsManager()
+        self.simulation_stats = []
+    
+    def add_run_stats(self, run_stats: Dict, ai_player_name: str) -> None:
+        """Add statistics for a simulation run.
+        
+        Args:
+            run_stats: Dictionary with run statistics
+            ai_player_name: Name of the AI player used
+        """
+        stats = {
+            'score': run_stats['score'],
+            'lines': run_stats['lines'],
+            'blocks_placed': run_stats['blocks_placed'],
+            'ai_player': ai_player_name
+        }
+        self.simulation_stats.append(stats)
+        self.save_stats(stats)
+    
+    def save_stats(self, stats: Dict) -> None:
+        """Save simulation statistics to CSV.
+        
+        Args:
+            stats: Statistics dictionary to save
+        """
+        self.stats_manager.save_stats(stats)
+    
+    def clear_stats(self) -> None:
+        """Clear all simulation statistics"""
+        self.simulation_stats = []
+    
+    def get_stats_summary(self) -> Dict:
+        """Get a summary of simulation statistics.
+        
+        Returns:
+            Dictionary with summary statistics
+        """
+        if not self.simulation_stats:
+            return {
+                'avg_score': 0,
+                'avg_lines': 0,
+                'avg_blocks': 0,
+                'runs': 0
+            }
+        
+        total_score = sum(s['score'] for s in self.simulation_stats)
+        total_lines = sum(s['lines'] for s in self.simulation_stats)
+        total_blocks = sum(s['blocks_placed'] for s in self.simulation_stats)
+        runs = len(self.simulation_stats)
+        
+        return {
+            'avg_score': total_score / runs,
+            'avg_lines': total_lines / runs,
+            'avg_blocks': total_blocks / runs,
+            'runs': runs
+        }
 
 
 class SimulationController(GameController):
@@ -24,7 +88,9 @@ class SimulationController(GameController):
         self.current_run = 0
         self.steps_per_second = 1
         self.last_simulation_step = 0
-        self.simulation_stats = []
+        
+        # Initialize simulation stats manager
+        self.simulation_stats_manager = SimulationStatsManager()
         
         # Store the default animation duration
         self.default_animation_duration = self.engine.animation_duration_ms
@@ -67,7 +133,7 @@ class SimulationController(GameController):
                 self.simulation_running = True
                 self.current_run = 0
                 self.last_simulation_step = time.time()
-                self.simulation_stats = []
+                self.simulation_stats_manager.clear_stats()
                 
                 # Set animation duration to 0 for instant line clears in simulation mode
                 self.engine.animation_duration_ms = 0
@@ -105,16 +171,6 @@ class SimulationController(GameController):
             
             # Ensure animation duration is set to 0 in the copied engine
             self.engine.animation_duration_ms = 0
-    
-    def save_simulation_stats(self, run_stats: Dict) -> None:
-        """Save simulation run statistics to CSV."""
-        stats = {
-            'score': run_stats['score'],
-            'lines': run_stats['lines'],
-            'blocks_placed': run_stats['blocks_placed'],
-            'ai_player': self.ai_controller.get_ai_player_name()
-        }
-        self.stats_manager.save_stats(stats)
     
     def get_available_ai_players(self):
         """Get a list of available AI players.
@@ -209,8 +265,6 @@ class SimulationController(GameController):
             if event.type == pygame.KEYDOWN:
                 if event.key in (pygame.K_ESCAPE, pygame.K_q):
                     return False
-                elif event.key == pygame.K_r and not self.engine.game_over:
-                    self.rotate_block()
                 elif event.key == pygame.K_RETURN and self.engine.game_over:
                     self.restart_game()
         
@@ -232,8 +286,7 @@ class SimulationController(GameController):
                     'lines': self.engine.lines,
                     'blocks_placed': self.engine.blocks_placed
                 }
-                self.simulation_stats.append(run_stats)
-                self.save_simulation_stats(run_stats)
+                self.simulation_stats_manager.add_run_stats(run_stats, self.ai_controller.get_ai_player_name())
                 
                 # Move to next run or end simulation
                 self.current_run += 1
@@ -250,13 +303,15 @@ class SimulationController(GameController):
                 self.last_simulation_step = time.time()
                 return
             
-            # Check if it's time for next simulation step
+            # Check if it's time for another simulation step
             current_time = time.time()
-            if self.steps_per_second == 0 or (current_time - self.last_simulation_step) >= (1.0 / self.steps_per_second):
+            if self.steps_per_second == 0 or current_time - self.last_simulation_step >= 1.0 / self.steps_per_second:
                 # Run a simulation step
                 self.run_simulation_step()
+                
+                # Update the last step time
                 self.last_simulation_step = current_time
     
     def loop(self):
-        """Main game loop with simulation capabilities."""
+        """Main game loop with simulation support."""
         self._loop_core(self._simulation_step_handler) 

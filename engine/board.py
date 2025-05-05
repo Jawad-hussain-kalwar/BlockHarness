@@ -9,6 +9,22 @@ class Board:
         self.cols = cols
         self.grid = [[0] * cols for _ in range(rows)]
 
+    @staticmethod
+    def from_grid(grid: List[List[int]]) -> 'Board':
+        """Create a new Board instance from an existing grid.
+        
+        Args:
+            grid: 2D list representing the board state
+            
+        Returns:
+            New Board instance with the provided grid
+        """
+        rows = len(grid)
+        cols = len(grid[0]) if rows > 0 else 0
+        board = Board(rows, cols)
+        board.grid = [row[:] for row in grid]  # Create a deep copy of the grid
+        return board
+
     # ────────────────────────── placement helpers ──────────────────────────
 
     def can_place(self, block, top: int, left: int) -> bool:

@@ -7,6 +7,7 @@ from engine.block import Block
 from ui.animation import AnimationManager, FadeoutAnimation
 from utils.metrics_manager import MetricsManager
 from dda.registry import registry as dda_registry
+from config.defaults import DEFAULT_WEIGHTS, SHAPES
 
 
 class GameEngine:
@@ -14,35 +15,71 @@ class GameEngine:
 
     def __init__(self, config: Dict):
         self.config = config
+        
+        # Ensure required config values exist with proper default values
+        if "shapes" not in self.config:
+            self.config["shapes"] = SHAPES.copy()
+            
+        if "shape_weights" not in self.config:
+            self.config["shape_weights"] = DEFAULT_WEIGHTS.copy()
+        
+        # Initialize board
         self.board = Board()
         self.score = 0
         self.lines = 0
         self.blocks_placed = 0
         self._game_over = False
 
-        self.pool = BlockPool(
-            self.config["shapes"],
-            self.config["shape_weights"]
-        )
+        # Initialize block pool with safe configuration
+        try:
+            self.pool = BlockPool(
+                self.config["shapes"],
+                self.config["shape_weights"]
+            )
+        except Exception as e:
+            print(f"Error initializing BlockPool: {e}, using fallback defaults")
+            # Fallback to default shapes and weights
+            self.config["shapes"] = SHAPES.copy()
+            self.config["shape_weights"] = DEFAULT_WEIGHTS.copy()
+            self.pool = BlockPool(self.config["shapes"], self.config["shape_weights"])
+            
         self._current_block = None
         
         # Preview management
-        self._preview_blocks = []  # List of (block, rotation)
+        self._preview_blocks = []  # List of blocks (no rotation)
         self._selected_preview_index = None
         
         # Create and initialize DDA algorithm
-        dda_name = self.config.get("dda_algorithm", "ThresholdDDA")
-        self.dda_algorithm = dda_registry.create_algorithm(dda_name)
-        dda_params = self.config.get("dda_params", {})
-        self.dda_algorithm.initialize(dda_params)
+        try:
+            dda_name = self.config.get("dda_algorithm", "ThresholdDDA")
+            self.dda_algorithm = dda_registry.create_algorithm(dda_name)
+            dda_params = self.config.get("dda_params", {})
+            self.dda_algorithm.initialize(dda_params)
+        except Exception as e:
+            print(f"Error initializing DDA algorithm: {e}, using fallback ThresholdDDA")
+            # Fallback to ThresholdDDA
+            self.dda_algorithm = dda_registry.create_algorithm("ThresholdDDA")
+            self.dda_algorithm.initialize({})
         
         # Initialize metrics manager
-        self.metrics_manager = MetricsManager(config)
-        # Start timing for the first move
-        self.metrics_manager.start_move_timer()
+        try:
+            self.metrics_manager = MetricsManager(config)
+            # Start timing for the first move
+            self.metrics_manager.start_move_timer()
+        except Exception as e:
+            print(f"Error initializing MetricsManager: {e}")
+            # Continue without full metrics tracking if something fails
+            self.metrics_manager = MetricsManager({})
+            self.metrics_manager.start_move_timer()
         
         # Now call refill_preview after metrics_manager is initialized
-        self._refill_preview()
+        try:
+            self._refill_preview()
+        except Exception as e:
+            print(f"Error filling preview: {e}")
+            # If refill fails, initialize with empty preview
+            self._preview_blocks = []
+            self._selected_preview_index = None
         
         # Animation management
         self.animation_manager = AnimationManager()
@@ -67,8 +104,8 @@ class GameEngine:
         """Get the current board grid state (read-only)."""
         return [row[:] for row in self.board.grid]
     
-    def get_preview_blocks(self) -> List[Tuple[Block, int]]:
-        """Get the current preview blocks with their rotations (read-only)."""
+    def get_preview_blocks(self) -> List[Block]:
+        """Get the current preview blocks (read-only)."""
         return self._preview_blocks.copy()
     
     def get_selected_preview_index(self) -> Optional[int]:
@@ -97,30 +134,11 @@ class GameEngine:
             return True
         return False
     
-    def rotate_selected_block(self, rotations: int = 1) -> bool:
-        """Rotate the selected block by the specified number of rotations.
-        
-        Args:
-            rotations: Number of 90-degree clockwise rotations to apply
-            
-        Returns:
-            bool: True if successfully rotated, False if no block selected
-        """
-        if self._selected_preview_index is None:
-            return False
-            
-        block, current_rotation = self._preview_blocks[self._selected_preview_index]
-        new_rotation = (current_rotation + rotations) % 4
-        self._preview_blocks[self._selected_preview_index] = (block, new_rotation)
-        return True
-    
-    def get_valid_placements(self, block_index: Optional[int] = None,
-                            rotation: Optional[int] = None) -> Set[Tuple[int, int]]:
+    def get_valid_placements(self, block_index: Optional[int] = None) -> Set[Tuple[int, int]]:
         """Get all valid (row, col) positions where the specified block can be placed.
         
         Args:
             block_index: Index of the preview block (defaults to selected block)
-            rotation: Rotation to apply (defaults to current rotation)
             
         Returns:
             Set of (row, col) tuples where the block can be placed
@@ -131,18 +149,13 @@ class GameEngine:
         if block_index is None or not (0 <= block_index < len(self._preview_blocks)):
             return set()
             
-        block, curr_rotation = self._preview_blocks[block_index]
-        if rotation is None:
-            rotation = curr_rotation
-            
-        # Get the rotated block
-        rotated_block = block.rotate_clockwise(rotation)
+        block = self._preview_blocks[block_index]
         
         # Find all valid placements
         valid_positions = set()
         for r in range(self.board.rows):
             for c in range(self.board.cols):
-                if self.board.can_place(rotated_block, r, c):
+                if self.board.can_place(block, r, c):
                     valid_positions.add((r, c))
                     
         return valid_positions
@@ -164,18 +177,17 @@ class GameEngine:
         if self.is_animating():
             return False
             
-        # Get selected block with rotation
-        block, rotation = self._preview_blocks[self._selected_preview_index]
-        rotated_block = block.rotate_clockwise(rotation)
+        # Get selected block
+        block = self._preview_blocks[self._selected_preview_index]
         
         # Check if can place
-        if not self.board.can_place(rotated_block, row, col):
+        if not self.board.can_place(block, row, col):
             # Record a placement mistake
             self.metrics_manager.record_mistake()
             return False
             
         # Place the block
-        self.board.place_block(rotated_block, row, col)
+        self.board.place_block(block, row, col)
         self.blocks_placed += 1
         
         # Find cells to clear and create animation
@@ -250,19 +262,17 @@ class GameEngine:
         """Get the opacity (0-1) for a cell if it's being animated."""
         return self.animation_manager.get_cell_opacity(row, col)
     
-    def find_next_placeable_block(self) -> Optional[Tuple[int, int]]:
+    def find_next_placeable_block(self) -> Optional[int]:
         """Find the next preview block that can be placed somewhere on the board.
         
         Returns:
-            Tuple of (block_index, rotation) or None if no blocks can be placed
+            Index of placeable block or None if no blocks can be placed
         """
-        for i, (block, rotation) in enumerate(self._preview_blocks):
-            for test_rot in range(4):  # Try all rotations
-                rotated_block = block.rotate_clockwise((rotation + test_rot) % 4)
-                for r in range(self.board.rows):
-                    for c in range(self.board.cols):
-                        if self.board.can_place(rotated_block, r, c):
-                            return (i, (rotation + test_rot) % 4)
+        for i, block in enumerate(self._preview_blocks):
+            for r in range(self.board.rows):
+                for c in range(self.board.cols):
+                    if self.board.can_place(block, r, c):
+                        return i
         return None
     
     @property
@@ -279,33 +289,62 @@ class GameEngine:
         return blocks[0]
     
     def _refill_preview(self, target_count=3):
-        """Refill the preview area with blocks up to the target count."""
-        blocks_needed = target_count - len(self._preview_blocks)
+        """Fill the preview with blocks up to the target count."""
+        # Determine how many blocks to generate
+        num_to_generate = max(0, target_count - len(self._preview_blocks))
         
-        if blocks_needed > 0:
-            # Get specific blocks from the DDA algorithm
-            new_blocks = self.dda_algorithm.get_next_blocks(self, blocks_needed)
+        if num_to_generate <= 0:
+            return  # Preview already has enough blocks
             
-            # Add the new blocks to the preview (with default rotation 0)
-            for block in new_blocks:
-                self._preview_blocks.append((block, 0))
-        
-        # Select the first preview block if none is currently selected
-        if self._selected_preview_index is None and self._preview_blocks:
-            self._selected_preview_index = 0
+        try:
+            # Try to get blocks from DDA algorithm first
+            new_blocks = self.dda_algorithm.get_next_blocks(self, num_to_generate)
+            
+            # If the DDA algorithm didn't return enough blocks, fill with randomly selected ones
+            if len(new_blocks) < num_to_generate:
+                num_still_needed = num_to_generate - len(new_blocks)
+                for _ in range(num_still_needed):
+                    new_blocks.append(self.pool.get_block())
+                    
+            # Add new blocks to preview
+            self._preview_blocks.extend(new_blocks)
+            
+            # Select first block if none selected
+            if self._selected_preview_index is None and self._preview_blocks:
+                self._selected_preview_index = 0
+                
+            # Check if MetricsManager has update_preview_blocks method before calling
+            if hasattr(self.metrics_manager, 'update_preview_blocks'):
+                self.metrics_manager.update_preview_blocks(
+                    self.board,
+                    self._preview_blocks,
+                    self._selected_preview_index
+                )
+            
+        except Exception as e:
+            print(f"Error in _refill_preview: {e}")
+            # Fallback to generating simple blocks if DDA or metrics fail
+            try:
+                for _ in range(num_to_generate):
+                    self._preview_blocks.append(self.pool.get_block())
+                
+                # Select first block if none selected
+                if self._selected_preview_index is None and self._preview_blocks:
+                    self._selected_preview_index = 0
+            except Exception as e2:
+                print(f"Critical error in block generation: {e2}")
+                # Leave preview as is if all attempts fail
     
     def _has_valid_placement(self, block: Block) -> bool:
-        """Check if a block can be placed anywhere on the board with any rotation.
+        """Check if a block can be placed anywhere on the board.
         
         Returns:
             True if the block can be placed, False otherwise
         """
-        for rotation in range(4):
-            rotated_block = block.rotate_clockwise(rotation)
-            for r in range(self.board.rows):
-                for c in range(self.board.cols):
-                    if self.board.can_place(rotated_block, r, c):
-                        return True
+        for r in range(self.board.rows):
+            for c in range(self.board.cols):
+                if self.board.can_place(block, r, c):
+                    return True
         return False
     
     def _check_game_over(self) -> bool:
@@ -315,7 +354,7 @@ class GameEngine:
             return True
             
         # Check if any preview block can be placed
-        for block, _ in self._preview_blocks:
+        for block in self._preview_blocks:
             if self._has_valid_placement(block):
                 return False
                 

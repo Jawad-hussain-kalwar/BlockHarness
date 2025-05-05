@@ -63,21 +63,6 @@ class MetricsManager:
         
         # Timing tracking
         self._last_move_start_time = time.time()
-        
-        # Shape names directly from shapes.py comments for consistency
-        self.shape_names = [
-            "single",
-            "1×2",
-            "2×2 square",
-            "3×1 line",
-            "L-shape",
-            "long L-shape",
-            "T-shape",
-            "Z-shape",
-            "S-shape",
-            "Plus-shape",
-            "longT-shape"
-        ]
     
     def start_move_timer(self) -> None:
         """Start timing a new move."""
@@ -183,170 +168,131 @@ class MetricsManager:
         # Check for game end opportunity and game over block after preview blocks
         self.opportunity, self.game_over_block = self._check_game_end_opportunity(board, all_shapes, preview_blocks)
     
-    def _find_best_fit_block(self, board: Board, shapes: List[List[List[int]]]) -> str:
+    def _find_best_fit_block(self, board: Board, shapes: Dict[str, List[Tuple[int, int]]]) -> str:
         """Find block that clears the most lines when placed on the board.
         
         Args:
             board: Current game board
-            shapes: List of all possible block shapes
+            shapes: Dictionary of all possible block shapes
             
         Returns:
             String name of the best fit block or "None" if no block clears a line
         """
-        best_block_idx = -1
+        best_block_name = "None"
         max_lines_cleared = 0
         
         # Try each block shape
-        for shape_idx, shape in enumerate(shapes):
+        for shape_name, shape in shapes.items():
             block = Block(shape)
             
-            # Try all rotations
-            for rotation in range(4):
-                rotated_block = block.rotate_clockwise(rotation)
-                
-                # Try all placements
-                for r in range(board.rows):
-                    for c in range(board.cols):
-                        if board.can_place(rotated_block, r, c):
-                            # Create a copy of the board
-                            temp_board = Board(board.rows, board.cols)
-                            temp_board.grid = [row[:] for row in board.grid]  # Deep copy
+            # Try placing the block at each position
+            for r in range(board.rows):
+                for c in range(board.cols):
+                    # Check if block can be placed at this position
+                    if board.can_place(block, r, c):
+                        # Create a temporary board for simulation
+                        temp_board = Board.from_grid(board.grid)
+                        
+                        # Place the block
+                        temp_board.place_block(block, r, c)
+                        
+                        # Count cleared cells
+                        cleared_cells = temp_board.find_full_lines()
+                        if cleared_cells:
+                            lines_cleared = self._count_lines(cleared_cells)
                             
-                            # Place the block on the temporary board
-                            temp_board.place_block(rotated_block, r, c)
-                            
-                            # Find cells to clear
-                            cells_to_clear = temp_board.find_full_lines()
-                            
-                            # Count the number of unique lines (rows + columns)
-                            # Based on game_engine._count_lines_from_cells logic
-                            row_counts = {}
-                            col_counts = {}
-                            for r_cell, c_cell in cells_to_clear:
-                                row_counts[r_cell] = row_counts.get(r_cell, 0) + 1
-                                col_counts[c_cell] = col_counts.get(c_cell, 0) + 1
-                                
-                            cleared_rows = sum(1 for r_val, count in row_counts.items() 
-                                             if count == temp_board.cols)
-                            cleared_cols = sum(1 for c_val, count in col_counts.items() 
-                                             if count == temp_board.rows)
-                            
-                            lines_cleared = cleared_rows + cleared_cols
-                            
-                            # Update best block if this one clears more lines
+                            # Update best block if this one is better
                             if lines_cleared > max_lines_cleared:
                                 max_lines_cleared = lines_cleared
-                                best_block_idx = shape_idx
+                                best_block_name = shape_name
         
-        # Return the name of the best block or "None" if no block clears any lines
-        if best_block_idx >= 0 and max_lines_cleared > 0:
-            if best_block_idx < len(self.shape_names):
-                return self.shape_names[best_block_idx]
-            else:
-                return f"Shape {best_block_idx}"  # Fallback if shape names array is shorter
-        else:
-            return "None"
+        return best_block_name
     
-    def _check_game_end_opportunity(self, board: Board, shapes: List[List[List[int]]], 
-                                    preview_blocks: List[Tuple[Block, int]]) -> Tuple[bool, str]:
-        """Check if there's an opportunity to end the game by finding a block that doesn't fit.
-        Takes into account preview blocks as if they're already placed.
+    def _check_game_end_opportunity(self, board: Board, shapes: Dict[str, List[Tuple[int, int]]], 
+                                    preview_blocks: List[Block]) -> Tuple[bool, str]:
+        """Check if game will end after placing the preview blocks.
         
         Args:
             board: Current game board
-            shapes: List of all possible block shapes
-            preview_blocks: List of preview blocks with rotations
+            shapes: Dictionary of all possible block shapes  
+            preview_blocks: List of preview blocks
             
         Returns:
-            Tuple of (opportunity exists, block that doesn't fit)
+            Tuple of (opportunity_exists, game_over_block_name)
         """
-        # First create a future board state with all preview blocks placed optimally
+        # Create a future board by simulating placement of all preview blocks
         future_board = self._create_future_board_with_preview(board, preview_blocks)
         
-        # If future board creation fails, game is likely already over
-        if future_board is None:
+        # If simulation couldn't place all blocks, no future to check
+        if not future_board:
             return False, "None"
-            
-        # Try each block shape on the future board
-        for shape_idx, shape in enumerate(shapes):
-            block = Block(shape)
-            can_place_anywhere = False
-            
-            # Try all rotations
-            for rotation in range(4):
-                rotated_block = block.rotate_clockwise(rotation)
-                
-                # Try all placements
-                for r in range(future_board.rows):
-                    for c in range(future_board.cols):
-                        if future_board.can_place(rotated_block, r, c):
-                            can_place_anywhere = True
-                            break
-                    if can_place_anywhere:
-                        break
-                if can_place_anywhere:
-                    break
-            
-            # If this block can't be placed anywhere on the future board
-            if not can_place_anywhere:
-                return True, self.shape_names[shape_idx] if shape_idx < len(self.shape_names) else f"Shape {shape_idx}"
         
-        # All blocks can be placed somewhere
+        # Check if any shape can be placed on the future board
+        for shape_name, shape in shapes.items():
+            block = Block(shape)
+            if not self._can_place_anywhere(future_board, block):
+                # This shape would cause game over
+                return True, shape_name
+        
+        # No game ending opportunity found
         return False, "None"
     
-    def _create_future_board_with_preview(self, board: Board, preview_blocks: List[Tuple[Block, int]]) -> Optional[Board]:
-        """Create a future board state with all preview blocks placed optimally.
+    def _create_future_board_with_preview(self, board: Board, preview_blocks: List[Block]) -> Optional[Board]:
+        """Simulate placing all preview blocks on the board optimally.
         
         Args:
             board: Current game board
-            preview_blocks: List of preview blocks with rotations
+            preview_blocks: List of preview blocks
             
         Returns:
-            Future board state or None if preview blocks cannot be placed
+            A simulated future board or None if simulation fails
         """
-        # Create a copy of the board
-        future_board = Board(board.rows, board.cols)
-        future_board.grid = [row[:] for row in board.grid]  # Deep copy
+        future_board = Board.from_grid(board.grid)
         
-        # Try to place each preview block in a location that would clear the most lines
-        for block, rotation in preview_blocks:
-            rotated_block = block.rotate_clockwise(rotation)
+        # Try to place each preview block
+        for block in preview_blocks:
+            # Find best placement (clears most lines)
             best_placement = None
-            max_lines_cleared = -1
+            best_lines_cleared = -1
             
-            # Find the best placement for this block
+            # Try each position
             for r in range(future_board.rows):
                 for c in range(future_board.cols):
-                    if future_board.can_place(rotated_block, r, c):
-                        # Try placing the block here
-                        temp_board = Board(future_board.rows, future_board.cols)
-                        temp_board.grid = [row[:] for row in future_board.grid]  # Deep copy
-                        temp_board.place_block(rotated_block, r, c)
+                    # Check if block can be placed
+                    if future_board.can_place(block, r, c):
+                        # Create a temporary board for simulation
+                        temp_board = Board.from_grid(future_board.grid)
                         
-                        # Find cells to clear
-                        cells_to_clear = temp_board.find_full_lines()
+                        # Place the block
+                        temp_board.place_block(block, r, c)
                         
-                        # Count lines that would be cleared (simplistic approach)
-                        lines_cleared = len(cells_to_clear) // max(future_board.rows, future_board.cols)
-                        
-                        # Update best placement if this one is better
-                        if lines_cleared > max_lines_cleared:
-                            max_lines_cleared = lines_cleared
+                        # Count cleared cells
+                        cleared_cells = temp_board.find_full_lines()
+                        if cleared_cells:
+                            lines_cleared = self._count_lines(cleared_cells)
+                            
+                            # Update best placement if this one is better
+                            if lines_cleared > best_lines_cleared:
+                                best_lines_cleared = lines_cleared
+                                best_placement = (r, c)
+                        elif best_placement is None:
+                            # Keep track of valid placement even if no lines cleared
                             best_placement = (r, c)
             
-            # If we couldn't place this block anywhere, return None
+            # If no valid placement found for this block, simulation fails
             if best_placement is None:
                 return None
                 
-            # Place the block at the best location
+            # Place the block at the best position
             r, c = best_placement
-            future_board.place_block(rotated_block, r, c)
+            future_board.place_block(block, r, c)
             
-            # Clear any full lines
-            cells_to_clear = future_board.find_full_lines()
-            if cells_to_clear:
-                future_board.clear_cells(cells_to_clear)
-                
+            # Clear any completed lines
+            cleared_cells = future_board.find_full_lines()
+            if cleared_cells:
+                future_board.clear_cells(cleared_cells)
+        
+        # Successfully placed all blocks
         return future_board
     
     def _find_empty_clusters(self, board: Board) -> List[Set[Tuple[int, int]]]:
@@ -389,36 +335,61 @@ class MetricsManager:
         
         return empty_clusters
     
-    def _check_imminent_threat(self, board: Board, preview_blocks: List[Tuple[Block, int]]) -> bool:
-        """Check if any of the preview blocks can't be placed on the board.
+    def _check_imminent_threat(self, board: Board, preview_blocks: List[Block]) -> bool:
+        """Check if the next placeable block can be placed without causing game end.
         
         Args:
             board: Current game board
-            preview_blocks: List of preview blocks with rotations
+            preview_blocks: List of preview blocks
             
         Returns:
-            True if any preview block can't be placed, False otherwise
+            True if there is an imminent threat, False otherwise
         """
         if not preview_blocks:
             return False
             
-        for block, rotation in preview_blocks:
-            can_place = False
-            rotated_block = block.rotate_clockwise(rotation)
+        # Check if current blocks can even be placed
+        placeable = False
+        for block in preview_blocks:
+            if self._can_place_anywhere(board, block):
+                placeable = True
+                break
+                
+        if not placeable:
+            # Already in game over condition
+            return True
             
-            # Check if the block can be placed anywhere on the board
-            for r in range(board.rows):
-                for c in range(board.cols):
-                    if board.can_place(rotated_block, r, c):
-                        can_place = True
-                        break
-                if can_place:
-                    break
-            
-            # If any block can't be placed, there's an imminent threat
-            if not can_place:
-                return True
+        # Create a future board by simulating placement of all preview blocks
+        future_board = self._create_future_board_with_preview(board, preview_blocks)
         
+        # If simulation couldn't place all blocks, there's a threat
+        if not future_board:
+            return True
+            
+        # Check if any shape can be placed on the future board
+        for shape in self.config["shapes"].values():
+            block = Block(shape)
+            if self._can_place_anywhere(future_board, block):
+                # Found at least one shape that can be placed, no imminent threat
+                return False
+        
+        # No shape can be placed after preview blocks, imminent threat
+        return True
+    
+    def _can_place_anywhere(self, board: Board, block: Block) -> bool:
+        """Check if a block can be placed anywhere on the board.
+        
+        Args:
+            board: Game board to check
+            block: Block to place
+            
+        Returns:
+            True if the block can be placed somewhere, False otherwise
+        """
+        for r in range(board.rows):
+            for c in range(board.cols):
+                if board.can_place(block, r, c):
+                    return True
         return False
     
     def _update_perf_band(self) -> None:
@@ -456,6 +427,24 @@ class MetricsManager:
             self.phase = "mid"
         else:
             self.phase = "late"
+    
+    def _count_lines(self, cells: Set[Tuple[int, int]]) -> int:
+        """Count the number of distinct rows and columns in a set of cells.
+        
+        Args:
+            cells: Set of (row, col) tuples that would be cleared
+            
+        Returns:
+            Number of distinct rows and columns
+        """
+        rows = set()
+        cols = set()
+        
+        for r, c in cells:
+            rows.add(r)
+            cols.add(c)
+            
+        return len(rows) + len(cols)
     
     @property
     def mistake_sw(self) -> int:

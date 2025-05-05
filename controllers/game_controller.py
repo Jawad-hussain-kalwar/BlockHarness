@@ -122,8 +122,6 @@ class GameController(BaseController):
                     return False
                 elif event.key == pygame.K_F2:
                     self.restart_game()
-                elif event.key == pygame.K_r and not self.engine.game_over:
-                    self.rotate_block()
                 elif event.key == pygame.K_RETURN and self.engine.game_over:
                     # Restart game when Enter key is pressed and game is over
                     self.restart_game()

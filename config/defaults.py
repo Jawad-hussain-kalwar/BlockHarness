@@ -1,27 +1,51 @@
 # config/defaults.py
 from engine.shapes import SHAPES
 
-# Default configuration (same as in simulator.py)
+# Get the number of shapes in the dictionary
+SHAPE_COUNT = len(SHAPES)
+
+# Create weight arrays with appropriate length
+DEFAULT_WEIGHTS = [0] * SHAPE_COUNT
+# Set weights for simple shapes (first ~10 shapes)
+for i in range(min(10, SHAPE_COUNT)):
+    DEFAULT_WEIGHTS[i] = 2 if i < 4 else 1
+    
+# Create difficulty threshold weights
+HARDER_WEIGHTS = [0] * SHAPE_COUNT
+HARDEST_WEIGHTS = [0] * SHAPE_COUNT
+# Set weights for harder difficulty
+for i in range(min(10, SHAPE_COUNT)):
+    HARDER_WEIGHTS[i] = 1 if i == 0 else (3 if i == 7 else (1 if i >= 8 else 2))
+    HARDEST_WEIGHTS[i] = 1 if i <= 1 else (4 if i == 7 else (2 if i >= 8 else 3))
+
+# Rescue weights for emergency situations
+RESCUE_WEIGHTS = [0] * SHAPE_COUNT
+if SHAPE_COUNT > 0:
+    RESCUE_WEIGHTS[0] = 10  # Very high weight for simplest shape
+if SHAPE_COUNT > 1:
+    RESCUE_WEIGHTS[1] = 8   # High weight for second shape
+    
+# Default configuration
 CONFIG = {
     "shapes": SHAPES,
-    "shape_weights": [2, 2, 2, 2, 1, 1, 1, 1, 0, 0, 0],           # initial bias
+    "shape_weights": DEFAULT_WEIGHTS,           # initial bias with appropriate length
     "difficulty_thresholds": [
-        (1000, [1, 2, 2, 2, 2, 2, 2, 3, 1, 1, 1]),                # harder
-        (3000, [1, 1, 2, 3, 3, 3, 3, 4, 2, 2, 2]),                # hardest
+        (1000, HARDER_WEIGHTS),                # harder
+        (3000, HARDEST_WEIGHTS),               # hardest
     ],
-    "dda_algorithm": "ThresholdDDA",                              # default DDA algorithm
-    "dda_params": {                                               # algorithm-specific parameters
+    "dda_algorithm": "ThresholdDDA",           # default DDA algorithm
+    "dda_params": {                            # algorithm-specific parameters
         "thresholds": [
-            (1000, [1, 2, 2, 2, 2, 2, 2, 3, 1, 1, 1]),            # harder
-            (3000, [1, 1, 2, 3, 3, 3, 3, 4, 2, 2, 2]),            # hardest
+            (1000, HARDER_WEIGHTS),            # harder
+            (3000, HARDEST_WEIGHTS),           # hardest
         ],
         "metrics_dda": {
-            "initial_difficulty": 3,                              # Starting difficulty (1-10)
-            "low_clear": 0.30,                                    # From existing metrics_flow
-            "high_clear": 0.70,                                   # From existing metrics_flow
-            "danger_cut": 0.80,                                   # From existing metrics_flow
-            "rescue_shape_weights": [10, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # Weights for rescue mode
-            "size_caps": [3, 3, 3, 4, 4, 4, 5, 5, 5, 5]           # Max shape size per difficulty level
+            "initial_difficulty": 3,                 # Starting difficulty (1-10)
+            "low_clear": 0.30,                       # From existing metrics_flow
+            "high_clear": 0.70,                      # From existing metrics_flow
+            "danger_cut": 0.80,                      # From existing metrics_flow
+            "rescue_shape_weights": RESCUE_WEIGHTS,  # Weights for rescue mode
+            "size_caps": [3, 3, 3, 4, 4, 4, 5, 5, 5, 5]  # Max shape size per difficulty level
         }
     },
     # Metrics configuration

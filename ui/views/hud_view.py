@@ -72,9 +72,14 @@ class HudView:
         # Draw hint text
         hint_y = self.parent_rect.y + STATS_HEIGHT + (HINTS_HEIGHT - self.font.get_height()) // 2
         hint1 = self.font.render("Click preview to select", True, TEXT_SECONDARY)
-        hint2 = self.font.render("R = rotate", True, TEXT_SECONDARY)
-        hint3 = self.font.render("Esc = quit", True, TEXT_SECONDARY)
+        hint2 = self.font.render("Esc = quit", True, TEXT_SECONDARY)
         
-        surface.blit(hint1, (self.parent_rect.x + HINTS_PADDING + 100, hint_y))
-        surface.blit(hint2, (self.parent_rect.x + HINTS_PADDING + STATS_BOX_WIDTH + HINTS_PADDING + 100, hint_y))
-        surface.blit(hint3, (self.parent_rect.x + HINTS_PADDING + 2 * (STATS_BOX_WIDTH + HINTS_PADDING), hint_y)) 
+        hint1_width = hint1.get_width()
+        hint2_width = hint2.get_width()
+        
+        # Calculate positions to evenly space the hints
+        total_width = hint1_width + hint2_width
+        spacing = (self.parent_rect.width - total_width) / 3
+        
+        surface.blit(hint1, (self.parent_rect.x + spacing, hint_y))
+        surface.blit(hint2, (self.parent_rect.x + 2 * spacing + hint1_width, hint_y)) 

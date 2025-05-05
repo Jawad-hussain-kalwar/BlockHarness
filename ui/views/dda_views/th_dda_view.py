@@ -9,6 +9,7 @@ from ui.layout import (
 )
 from ui.input_field import InputField
 from ui.debug import draw_debug_rect
+from config.defaults import DEFAULT_WEIGHTS, HARDER_WEIGHTS, HARDEST_WEIGHTS
 
 
 class ThresholdDDAView:
@@ -39,9 +40,12 @@ class ThresholdDDAView:
         self.initial_weights_label = (left_x, y)
         y += FIELD_HEIGHT - FIELD_SPACING + 4
         
-        # Initial weights input
+        # Convert defaults to string format
+        default_weights_str = ",".join(str(w) for w in DEFAULT_WEIGHTS)
+        
+        # Initial weights input with default values
         initial_field_rect = pygame.Rect(left_x, y, field_width, FIELD_HEIGHT)
-        self.initial_weights_field = InputField(initial_field_rect, "", 21)
+        self.initial_weights_field = InputField(initial_field_rect, default_weights_str, 21)
         self.input_fields.append(self.initial_weights_field)
         y += FIELD_HEIGHT + FIELD_SPACING * 2
         
@@ -52,13 +56,17 @@ class ThresholdDDAView:
         # Threshold 1 score
         self.score1_label = (left_x, y)
         threshold1_score_rect = pygame.Rect(left_x, y + LABEL_SPACING + 5, field_width, FIELD_HEIGHT)
-        self.threshold1_score_field = InputField(threshold1_score_rect, "", 5, numeric=True)
+        self.threshold1_score_field = InputField(threshold1_score_rect, "1000", 5, numeric=True)
         self.input_fields.append(self.threshold1_score_field)
         
         # Threshold 1 weights (now below score)
         self.weights1_label = (left_x, y + FIELD_HEIGHT + FIELD_SPACING + 5)
+        
+        # Convert harder weights to string format
+        harder_weights_str = ",".join(str(w) for w in HARDER_WEIGHTS)
+        
         threshold1_weights_rect = pygame.Rect(left_x, y + FIELD_HEIGHT + FIELD_SPACING * 2 + 10, field_width, FIELD_HEIGHT)
-        self.threshold1_weights_field = InputField(threshold1_weights_rect, "", 21)
+        self.threshold1_weights_field = InputField(threshold1_weights_rect, harder_weights_str, 21)
         self.input_fields.append(self.threshold1_weights_field)
         y += FIELD_HEIGHT * 2 + FIELD_SPACING * 3 + 15
         
@@ -69,29 +77,45 @@ class ThresholdDDAView:
         # Threshold 2 score
         self.score2_label = (left_x, y)
         threshold2_score_rect = pygame.Rect(left_x, y + LABEL_SPACING + 5, field_width, FIELD_HEIGHT)
-        self.threshold2_score_field = InputField(threshold2_score_rect, "", 5, numeric=True)
+        self.threshold2_score_field = InputField(threshold2_score_rect, "3000", 5, numeric=True)
         self.input_fields.append(self.threshold2_score_field)
         
         # Threshold 2 weights (now below score)
         self.weights2_label = (left_x, y + FIELD_HEIGHT + FIELD_SPACING + 5)
+        
+        # Convert hardest weights to string format
+        hardest_weights_str = ",".join(str(w) for w in HARDEST_WEIGHTS)
+        
         threshold2_weights_rect = pygame.Rect(left_x, y + FIELD_HEIGHT + FIELD_SPACING * 2 + 10, field_width, FIELD_HEIGHT)
-        self.threshold2_weights_field = InputField(threshold2_weights_rect, "", 21)
+        self.threshold2_weights_field = InputField(threshold2_weights_rect, hardest_weights_str, 21)
         self.input_fields.append(self.threshold2_weights_field)
 
     def update_config_fields(self, config):
         """Update input fields from config."""
-        initial_weights = ",".join(map(str, config["shape_weights"]))
+        # Get shape weights from config or use defaults
+        shape_weights = config.get("shape_weights", DEFAULT_WEIGHTS)
+        initial_weights = ",".join(map(str, shape_weights))
         self.initial_weights_field.value = initial_weights
         
-        threshold1_score = config["difficulty_thresholds"][0][0]
-        threshold1_weights = ",".join(map(str, config["difficulty_thresholds"][0][1]))
-        self.threshold1_score_field.value = str(threshold1_score)
-        self.threshold1_weights_field.value = threshold1_weights
+        # Get difficulty thresholds from config or use defaults
+        difficulty_thresholds = config.get("difficulty_thresholds", [
+            (1000, HARDER_WEIGHTS),
+            (3000, HARDEST_WEIGHTS)
+        ])
         
-        threshold2_score = config["difficulty_thresholds"][1][0]
-        threshold2_weights = ",".join(map(str, config["difficulty_thresholds"][1][1]))
-        self.threshold2_score_field.value = str(threshold2_score)
-        self.threshold2_weights_field.value = threshold2_weights
+        # Check if thresholds exist and have the right format
+        if len(difficulty_thresholds) >= 2:
+            # Update threshold 1
+            threshold1_score = difficulty_thresholds[0][0]
+            threshold1_weights = difficulty_thresholds[0][1]
+            self.threshold1_score_field.value = str(threshold1_score)
+            self.threshold1_weights_field.value = ",".join(map(str, threshold1_weights))
+            
+            # Update threshold 2
+            threshold2_score = difficulty_thresholds[1][0]
+            threshold2_weights = difficulty_thresholds[1][1]
+            self.threshold2_score_field.value = str(threshold2_score)
+            self.threshold2_weights_field.value = ",".join(map(str, threshold2_weights))
 
     def draw(self, surface):
         """Draw the ThresholdDDA view elements."""
@@ -129,7 +153,9 @@ class ThresholdDDAView:
         """Handle events for the ThresholdDDA view."""
         # Handle input field events
         for field in self.input_fields:
-            field.handle_event(event)
+            if field.handle_event(event):
+                return True
+        return False
 
     def get_config_values(self):
         """Get the current configuration values from the ThresholdDDA view.
@@ -139,24 +165,33 @@ class ThresholdDDAView:
         """
         try:
             # Parse initial weights
-            initial_weights = list(map(int, self.initial_weights_field.value.split(",")))
-            if len(initial_weights) != 11:
-                print("Initial weights must have 11 values")
-                return None
+            initial_weights = [int(w.strip()) for w in self.initial_weights_field.value.split(",")]
+            
+            # Ensure we have the right number of values for shape weights
+            if not initial_weights:
+                initial_weights = DEFAULT_WEIGHTS.copy()
+            elif len(initial_weights) < len(DEFAULT_WEIGHTS):
+                initial_weights.extend([0] * (len(DEFAULT_WEIGHTS) - len(initial_weights)))
             
             # Parse threshold 1
             threshold1_score = int(self.threshold1_score_field.value)
-            threshold1_weights = list(map(int, self.threshold1_weights_field.value.split(",")))
-            if len(threshold1_weights) != 11:
-                print("Threshold 1 weights must have 11 values")
-                return None
+            threshold1_weights = [int(w.strip()) for w in self.threshold1_weights_field.value.split(",")]
+            
+            # Ensure we have the right number of values for threshold1
+            if not threshold1_weights:
+                threshold1_weights = HARDER_WEIGHTS.copy()
+            elif len(threshold1_weights) < len(DEFAULT_WEIGHTS):
+                threshold1_weights.extend([0] * (len(DEFAULT_WEIGHTS) - len(threshold1_weights)))
             
             # Parse threshold 2
             threshold2_score = int(self.threshold2_score_field.value)
-            threshold2_weights = list(map(int, self.threshold2_weights_field.value.split(",")))
-            if len(threshold2_weights) != 11:
-                print("Threshold 2 weights must have 11 values")
-                return None
+            threshold2_weights = [int(w.strip()) for w in self.threshold2_weights_field.value.split(",")]
+            
+            # Ensure we have the right number of values for threshold2
+            if not threshold2_weights:
+                threshold2_weights = HARDEST_WEIGHTS.copy()
+            elif len(threshold2_weights) < len(DEFAULT_WEIGHTS):
+                threshold2_weights.extend([0] * (len(DEFAULT_WEIGHTS) - len(threshold2_weights)))
             
             # Build configuration dictionary
             return {
@@ -173,6 +208,6 @@ class ThresholdDDAView:
                 }
             }
             
-        except (ValueError, IndexError) as e:
+        except ValueError as e:
             print(f"Invalid configuration values: {e}")
             return None 

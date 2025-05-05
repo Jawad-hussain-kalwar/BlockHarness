@@ -1,20 +1,58 @@
 # controllers/base_controller.py
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Any
 
 from engine.game_engine import GameEngine
+from utils.config_manager import config_manager
+from utils.event_manager import EventManager
 
 
 class BaseController:
-    """Base controller interface that all game controllers should implement."""
+    """Base controller interface that all game controllers should implement.
+    This controller uses the ConfigManager for configuration management
+    and is designed to work with the EventManager for event handling.
+    """
     
-    def __init__(self, config: Dict):
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initialize the controller with the provided configuration.
         
         Args:
-            config: Game configuration dictionary
+            config: Game configuration dictionary (optional)
         """
+        # Initialize configuration
+        if config:
+            config_manager.update(config)
+        
+        # Store the configuration
+        self.config = config_manager.get_all()
+        
+        # Create the game engine
+        self.engine = GameEngine(self.config)
+        
+        # Create event manager
+        self.event_manager = EventManager()
+        
+        # Register for configuration updates
+        config_manager.register_observer(self._on_config_updated)
+    
+    def _on_config_updated(self, config: Dict) -> None:
+        """Handle configuration updates.
+        
+        Args:
+            config: The updated configuration
+        """
+        # Store a reference to the current config
         self.config = config
-        self.engine = GameEngine(config)
+        
+        # Check if the engine needs to be reset due to config changes
+        self._check_engine_reset()
+    
+    def _check_engine_reset(self) -> None:
+        """Check if the engine needs to be reset due to config changes.
+        
+        This method should be overridden by subclasses to implement
+        engine reset logic based on configuration changes.
+        """
+        pass
     
     def reset_engine(self, preserve_config: bool = True) -> None:
         """Re-initialize the game engine and clear controller flags.
@@ -53,11 +91,9 @@ class BaseController:
         if not new_config:
             return False
             
-        # Update config
-        self.config.update(new_config)
+        # Update config through the config manager (which will notify observers)
+        config_manager.update(new_config)
         
-        # Restart game with new config
-        self.restart_game()
         return True
     
     def select_block(self, index: int) -> bool:
@@ -71,17 +107,6 @@ class BaseController:
         """
         return self.engine.select_preview_block(index)
     
-    def rotate_block(self, rotations: int = 1) -> bool:
-        """Rotate the currently selected block.
-        
-        Args:
-            rotations: Number of 90-degree clockwise rotations
-            
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        return self.engine.rotate_selected_block(rotations)
-    
     def place_block(self, row: int, col: int) -> bool:
         """Place the currently selected block at the specified position.
         
@@ -94,11 +119,11 @@ class BaseController:
         """
         return self.engine.place_selected_block(row, col)
     
-    def find_next_valid_block(self) -> Optional[Tuple[int, int]]:
+    def find_next_valid_block(self) -> Optional[int]:
         """Find the next placeable block in the preview.
         
         Returns:
-            Tuple of (block_index, rotation) or None if no block can be placed
+            Index of the valid block or None if no block can be placed
         """
         return self.engine.find_next_placeable_block()
     
@@ -125,4 +150,32 @@ class BaseController:
             "blocks_placed": self.engine.blocks_placed,
             "game_over": self.engine.game_over,
             "metrics": self.engine.get_metrics()
-        } 
+        }
+    
+    def setup_event_handling(self) -> None:
+        """Set up event handling with the event manager.
+        
+        This method should be overridden by subclasses to register
+        their event handlers with the event manager.
+        """
+        # Register for quit events
+        self.event_manager.register_quit_handler(self._on_quit)
+    
+    def _on_quit(self, event) -> bool:
+        """Handle quit events.
+        
+        Args:
+            event: The quit event
+            
+        Returns:
+            False to indicate the application should quit
+        """
+        return False
+    
+    def handle_events(self) -> bool:
+        """Process user input events.
+        
+        Returns:
+            True to continue, False to quit
+        """
+        return self.event_manager.process_events() 

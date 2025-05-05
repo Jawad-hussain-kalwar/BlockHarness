@@ -3,6 +3,7 @@ import random
 from dda.base_dda import BaseDDAAlgorithm
 from dda.registry import registry
 from engine.block import Block
+from config.defaults import DEFAULT_WEIGHTS
 
 
 class IntervalDDA(BaseDDAAlgorithm):
@@ -21,9 +22,8 @@ class IntervalDDA(BaseDDAAlgorithm):
         self.steps_to_awkward = 2
         self.awkward_block_count = 1
         
-        # Default block weights (equal weights)
-        #                      [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-        self.default_weights = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        # Use DEFAULT_WEIGHTS from config instead of hardcoded values
+        self.default_weights = DEFAULT_WEIGHTS.copy()
         
         # Block classification
         # Rescue blocks: small blocks that typically fit well and can clear lines
@@ -57,6 +57,13 @@ class IntervalDDA(BaseDDAAlgorithm):
         self.rescue_block_count = max(1, min(self.rescue_block_count, 3))
         self.steps_to_awkward = max(1, self.steps_to_awkward)
         self.awkward_block_count = max(1, min(self.awkward_block_count, 3))
+        
+        # Get default weights from config or use centralized defaults
+        self.default_weights = config_params.get("shape_weights", DEFAULT_WEIGHTS).copy()
+        
+        # Get rescue and awkward block indices from config if available
+        self.rescue_blocks = config_params.get("rescue_blocks", self.rescue_blocks)
+        self.awkward_blocks = config_params.get("awkward_blocks", self.awkward_blocks)
     
     def maybe_adjust(self, engine_state) -> Optional[List[int]]:
         """Check game state and return new weights if adjustment needed.
@@ -88,7 +95,8 @@ class IntervalDDA(BaseDDAAlgorithm):
             
             # Apply boost to rescue blocks
             for idx in self.rescue_blocks[:self.rescue_block_count]:
-                new_weights[idx] = rescue_boost
+                if idx < len(new_weights):  # Ensure index is valid
+                    new_weights[idx] = rescue_boost
         
         # Adjust weights for awkward tray
         if is_awkward_tray:
@@ -97,7 +105,8 @@ class IntervalDDA(BaseDDAAlgorithm):
             
             # Apply boost to awkward blocks
             for idx in self.awkward_blocks[:self.awkward_block_count]:
-                new_weights[idx] = awkward_boost
+                if idx < len(new_weights):  # Ensure index is valid
+                    new_weights[idx] = awkward_boost
         
         # Return adjusted weights
         return new_weights

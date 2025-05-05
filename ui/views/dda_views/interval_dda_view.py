@@ -127,7 +127,9 @@ class IntervalDDAView:
         """Handle events for the IntervalDDA view."""
         # Handle input field events
         for field in self.input_fields:
-            field.handle_event(event)
+            if field.handle_event(event):
+                return True
+        return False
         
     def get_config_values(self):
         """Get the current configuration values from the IntervalDDA view.
