@@ -41,7 +41,7 @@ class StaticDDAView:
         
         # Initial weights input with fixed value
         initial_field_rect = pygame.Rect(left_x, y, field_width, FIELD_HEIGHT)
-        self.initial_weights_field = InputField(initial_field_rect, "1,1,1,1,1,1,1,1,1,1,1", 20)
+        self.initial_weights_field = InputField(initial_field_rect, "1,0,0,0,0,0,0,0,0,0,0", 21)
         self.input_fields.append(self.initial_weights_field)
         y += FIELD_HEIGHT + FIELD_SPACING * 2
         
@@ -54,8 +54,8 @@ class StaticDDAView:
         
     def update_config_fields(self, config):
         """Update input fields from config."""
-        # For static DDA, we always use equal weights (1,1,1,1,1,1,1,1,1,1,1)
-        self.initial_weights_field.value = "1,1,1,1,1,1,1,1,1,1,1"
+        # For static DDA, we always use equal weights (1,0,0,0,0,0,0,0,0,0,0)
+        self.initial_weights_field.value = "1,0,0,0,0,0,0,0,0,0,0"
         
     def draw(self, surface):
         """Draw the StaticDDA view elements."""
@@ -107,8 +107,8 @@ class StaticDDAView:
         Returns:
             Dict: Configuration parameters with static weights
         """
-        # Always use fixed weights [1,1,1,1,1,1,1,1,1,1,1]
-        weights = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        # Always use fixed weights [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        weights = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         
         # Build configuration dictionary
         return {

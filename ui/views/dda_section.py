@@ -13,7 +13,7 @@ from ui.layout import (
 from ui.input_field import InputField
 from ui.dropdown_menu import DropdownMenu
 from ui.debug import draw_debug_rect
-from ui.views.dda_views import ThresholdDDAView, StaticDDAView, MetricsDDAView
+from ui.views.dda_views import ThresholdDDAView, StaticDDAView, MetricsDDAView, IntervalDDAView
 
 
 class DDASection:
@@ -58,6 +58,7 @@ class DDASection:
         self.threshold_dda_view = ThresholdDDAView(self.dda_view_rect, font, small_font)
         self.static_dda_view = StaticDDAView(self.dda_view_rect, font, small_font)
         self.metrics_dda_view = MetricsDDAView(self.dda_view_rect, font, small_font)
+        self.interval_dda_view = IntervalDDAView(self.dda_view_rect, font, small_font)
         
         # Set default active view
         self.active_dda_view = self.threshold_dda_view
@@ -71,6 +72,8 @@ class DDASection:
         # Update the active DDA view's fields
         self.threshold_dda_view.update_config_fields(config)
         self.static_dda_view.update_config_fields(config)
+        self.metrics_dda_view.update_config_fields(config)
+        self.interval_dda_view.update_config_fields(config)
         
         # Set default DDA algorithm if available
         if self.dda_algorithm_dropdown.options:
@@ -105,6 +108,8 @@ class DDASection:
             self.active_dda_view = self.static_dda_view
         elif algorithm_name == "MetricsDDA":
             self.active_dda_view = self.metrics_dda_view
+        elif algorithm_name == "IntervalDDA":
+            self.active_dda_view = self.interval_dda_view
         # Add future DDA types here
 
     def draw(self, surface):

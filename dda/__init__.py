@@ -6,3 +6,4 @@ from dda.base_dda import BaseDDAAlgorithm
 from dda.threshold_dda import ThresholdDDA
 from dda.static_dda import StaticDDA
 from dda.metrics_dda import MetricsDDA
+from dda.interval_dda import IntervalDDA

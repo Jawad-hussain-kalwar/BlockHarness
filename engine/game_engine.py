@@ -6,6 +6,7 @@ from engine.block_pool import BlockPool
 from engine.block import Block
 from ui.animation import AnimationManager, FadeoutAnimation
 from utils.metrics_manager import MetricsManager
+from dda.registry import registry as dda_registry
 
 
 class GameEngine:
@@ -28,16 +29,24 @@ class GameEngine:
         # Preview management
         self._preview_blocks = []  # List of (block, rotation)
         self._selected_preview_index = None
-        self._refill_preview()
         
-        # Animation management
-        self.animation_manager = AnimationManager()
-        self.animation_duration_ms = 500  # Default animation duration in milliseconds
+        # Create and initialize DDA algorithm
+        dda_name = self.config.get("dda_algorithm", "ThresholdDDA")
+        self.dda_algorithm = dda_registry.create_algorithm(dda_name)
+        dda_params = self.config.get("dda_params", {})
+        self.dda_algorithm.initialize(dda_params)
         
         # Initialize metrics manager
         self.metrics_manager = MetricsManager(config)
         # Start timing for the first move
         self.metrics_manager.start_move_timer()
+        
+        # Now call refill_preview after metrics_manager is initialized
+        self._refill_preview()
+        
+        # Animation management
+        self.animation_manager = AnimationManager()
+        self.animation_duration_ms = 300  # Default animation duration in milliseconds
 
     @staticmethod
     def compute_line_score(lines: int) -> int:
@@ -49,7 +58,7 @@ class GameEngine:
         Returns:
             int: Score awarded for clearing those lines
         """
-        return 100 * lines + 50 * max(0, lines - 1)  # Base score + combo bonus
+        return 10 * lines
 
     # ───────────────────────── Public API ──────────────────────────
 
@@ -262,14 +271,22 @@ class GameEngine:
     # ──────────────────────── Private methods ────────────────────────
 
     def _spawn(self) -> Block:
-        """Create a new block based on the current difficulty."""
-        return self.pool.get_block()
+        """Create a new block using the DDA algorithm."""
+        # Get a single block from the DDA
+        blocks = self.dda_algorithm.get_next_blocks(self, 1)
+        return blocks[0]
     
     def _refill_preview(self, target_count=3):
         """Refill the preview area with blocks up to the target count."""
-        while len(self._preview_blocks) < target_count:
-            block = self._spawn()
-            self._preview_blocks.append((block, 0))  # Append with default rotation
+        blocks_needed = target_count - len(self._preview_blocks)
+        
+        if blocks_needed > 0:
+            # Get specific blocks from the DDA algorithm
+            new_blocks = self.dda_algorithm.get_next_blocks(self, blocks_needed)
+            
+            # Add the new blocks to the preview (with default rotation 0)
+            for block in new_blocks:
+                self._preview_blocks.append((block, 0))
         
         # Select the first preview block if none is currently selected
         if self._selected_preview_index is None and self._preview_blocks:
@@ -323,7 +340,12 @@ class GameEngine:
         return len(rows) + len(cols)
     
     def _maybe_update_difficulty(self):
-        """Update difficulty based on game progress."""
+        """Update difficulty - maintained for backward compatibility.
+        
+        Note: This method is primarily kept for backward compatibility.
+        Modern DDA algorithms will handle difficulty adjustment directly.
+        """
+        # For backward compatibility with threshold-based DDAs
         for thr, new_weights in self.config.get("difficulty_thresholds", []):
             if self.score >= thr:
                 self.pool.weights = new_weights

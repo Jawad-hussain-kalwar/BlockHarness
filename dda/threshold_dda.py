@@ -1,6 +1,8 @@
 from typing import Dict, List, Optional, Tuple
+import random
 from dda.base_dda import BaseDDAAlgorithm
 from dda.registry import registry
+from engine.block import Block
 
 
 class ThresholdDDA(BaseDDAAlgorithm):
@@ -40,6 +42,30 @@ class ThresholdDDA(BaseDDAAlgorithm):
                 self.last_threshold_reached = idx
                 return weights
         return None
+        
+    def get_next_blocks(self, engine_state, count: int = 3) -> List[Block]:
+        """Get the next blocks based on threshold-adjusted weights.
+        
+        Args:
+            engine_state: The current game engine state
+            count: Number of blocks to generate
+            
+        Returns:
+            List[Block]: The specific blocks to be spawned
+        """
+        # First check for threshold crossing
+        weights = self.maybe_adjust(engine_state)
+        
+        # If no adjustment, use current weights from engine
+        if weights is None:
+            weights = engine_state.pool.weights
+        
+        # Select 'count' shapes using the adjusted weights
+        shapes = engine_state.config["shapes"]
+        selected_shapes = [random.choices(shapes, weights=weights, k=1)[0] for _ in range(count)]
+        
+        # Convert shapes to blocks
+        return [Block(shape) for shape in selected_shapes]
 
 
 # Register the threshold DDA algorithm

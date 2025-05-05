@@ -41,7 +41,7 @@ class ThresholdDDAView:
         
         # Initial weights input
         initial_field_rect = pygame.Rect(left_x, y, field_width, FIELD_HEIGHT)
-        self.initial_weights_field = InputField(initial_field_rect, "", 20)
+        self.initial_weights_field = InputField(initial_field_rect, "", 21)
         self.input_fields.append(self.initial_weights_field)
         y += FIELD_HEIGHT + FIELD_SPACING * 2
         
@@ -58,7 +58,7 @@ class ThresholdDDAView:
         # Threshold 1 weights (now below score)
         self.weights1_label = (left_x, y + FIELD_HEIGHT + FIELD_SPACING + 5)
         threshold1_weights_rect = pygame.Rect(left_x, y + FIELD_HEIGHT + FIELD_SPACING * 2 + 10, field_width, FIELD_HEIGHT)
-        self.threshold1_weights_field = InputField(threshold1_weights_rect, "", 20)
+        self.threshold1_weights_field = InputField(threshold1_weights_rect, "", 21)
         self.input_fields.append(self.threshold1_weights_field)
         y += FIELD_HEIGHT * 2 + FIELD_SPACING * 3 + 15
         
@@ -75,7 +75,7 @@ class ThresholdDDAView:
         # Threshold 2 weights (now below score)
         self.weights2_label = (left_x, y + FIELD_HEIGHT + FIELD_SPACING + 5)
         threshold2_weights_rect = pygame.Rect(left_x, y + FIELD_HEIGHT + FIELD_SPACING * 2 + 10, field_width, FIELD_HEIGHT)
-        self.threshold2_weights_field = InputField(threshold2_weights_rect, "", 20)
+        self.threshold2_weights_field = InputField(threshold2_weights_rect, "", 21)
         self.input_fields.append(self.threshold2_weights_field)
 
     def update_config_fields(self, config):
