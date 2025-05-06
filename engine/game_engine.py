@@ -4,7 +4,6 @@ from typing import Dict, List, Tuple, Optional, Set
 from engine.board import Board
 from engine.block_pool import BlockPool
 from engine.block import Block
-from engine.dda import DDA
 from ui.animation import AnimationManager, FadeoutAnimation
 from utils.metrics_manager import MetricsManager
 from config.defaults import DEFAULT_WEIGHTS, SHAPES
@@ -30,14 +29,26 @@ class GameEngine:
         self.blocks_placed = 0
         self._game_over = False
 
-        # Initialize block pool with safe configuration
+        # Initialize metrics manager
+        try:
+            self.metrics_manager = MetricsManager(config)
+            # Start timing for the first move
+            self.metrics_manager.start_move_timer()
+        except Exception as e:
+            print(f"[engine/game_engine.py] Error initializing MetricsManager: {e}")
+            # Continue without full metrics tracking if something fails
+            self.metrics_manager = MetricsManager({})
+            self.metrics_manager.start_move_timer()
+
+        # Initialize block pool with configuration
         try:
             self.pool = BlockPool(
                 self.config["shapes"],
-                self.config["shape_weights"]
+                self.config["shape_weights"],
+                self.config
             )
         except Exception as e:
-            print(f"[engine/game_engine.py][40] Error initializing BlockPool: {e}, using fallback defaults")
+            print(f"[engine/game_engine.py] Error initializing BlockPool: {e}, using fallback defaults")
             # Fallback to default shapes and weights
             self.config["shapes"] = SHAPES.copy()
             self.config["shape_weights"] = DEFAULT_WEIGHTS
@@ -49,33 +60,11 @@ class GameEngine:
         self._preview_blocks = []  # List of blocks (no rotation)
         self._selected_preview_index = None
         
-        # Create and initialize DDA algorithm
-        try:
-            # Initialize the single DDA implementation
-            self.dda_algorithm = DDA()
-            self.dda_algorithm.initialize(config)
-        except Exception as e:
-            print(f"[engine/game_engine.py][59] Error initializing DDA algorithm: {e}")
-            # Create a backup instance with default configuration
-            self.dda_algorithm = DDA()
-            self.dda_algorithm.initialize({})
-
-        # Initialize metrics manager
-        try:
-            self.metrics_manager = MetricsManager(config)
-            # Start timing for the first move
-            self.metrics_manager.start_move_timer()
-        except Exception as e:
-            print(f"[engine/game_engine.py][76] Error initializing MetricsManager: {e}")
-            # Continue without full metrics tracking if something fails
-            self.metrics_manager = MetricsManager({})
-            self.metrics_manager.start_move_timer()
-        
         # Now call refill_preview after metrics_manager is initialized
         try:
             self._refill_preview()
         except Exception as e:
-            print(f"[engine/game_engine.py][85] Error filling preview: {e}")
+            print(f"[engine/game_engine.py] Error filling preview: {e}")
             # If refill fails, initialize with empty preview
             self._preview_blocks = []
             self._selected_preview_index = None
@@ -219,8 +208,6 @@ class GameEngine:
         self.metrics_manager.record_move_completion(line_count)
         self.metrics_manager.score = self.score
         
-        # Update difficulty if needed
-        self._maybe_update_difficulty()
         
         # Remove from preview
         self._preview_blocks.pop(self._selected_preview_index)
@@ -281,12 +268,6 @@ class GameEngine:
     
     # ──────────────────────── Private methods ────────────────────────
 
-    def _spawn(self) -> Block:
-        """Create a new block using the DDA algorithm."""
-        # Get a single block from the DDA
-        blocks = self.dda_algorithm.get_next_blocks(self, 1)
-        return blocks[0]
-    
     def _refill_preview(self, target_count=3):
         """Fill the preview with blocks up to the target count."""
         # Determine how many blocks to generate
@@ -296,15 +277,9 @@ class GameEngine:
             return  # Preview already has enough blocks
             
         try:
-            # Try to get blocks from DDA algorithm first
-            new_blocks = self.dda_algorithm.get_next_blocks(self, num_to_generate)
+            # Get blocks directly from the enhanced BlockPool
+            new_blocks = self.pool.get_next_blocks(self, num_to_generate)
             
-            # If the DDA algorithm didn't return enough blocks, fill with randomly selected ones
-            if len(new_blocks) < num_to_generate:
-                num_still_needed = num_to_generate - len(new_blocks)
-                for _ in range(num_still_needed):
-                    new_blocks.append(self.pool.get_block())
-                    
             # Add new blocks to preview
             self._preview_blocks.extend(new_blocks)
             
@@ -321,18 +296,8 @@ class GameEngine:
                 )
             
         except Exception as e:
-            print(f"[engine/game_engine.py][331] Error in _refill_preview: {e}")
-            # Fallback to generating simple blocks if DDA or metrics fail
-            try:
-                for _ in range(num_to_generate):
-                    self._preview_blocks.append(self.pool.get_block())
-                
-                # Select first block if none selected
-                if self._selected_preview_index is None and self._preview_blocks:
-                    self._selected_preview_index = 0
-            except Exception as e2:
-                print(f"[engine/game_engine.py][225] Critical error in block generation: {e2}")
-                # Leave preview as is if all attempts fail
+            print(f"[engine/game_engine.py] Error in _refill_preview: {e}")
+            # No fallback - if we have errors, we need to know and fix the root cause
     
     def _has_valid_placement(self, block: Block) -> bool:
         """Check if a block can be placed anywhere on the board.
@@ -383,14 +348,3 @@ class GameEngine:
         cleared_cols = sum(1 for c, count in col_counts.items() if count == self.board.rows)
 
         return cleared_rows + cleared_cols
-    
-    def _maybe_update_difficulty(self):
-        """Update difficulty - maintained for backward compatibility.
-        
-        Note: This method is primarily kept for backward compatibility.
-        Modern DDA algorithms will handle difficulty adjustment directly.
-        """
-        # For backward compatibility with threshold-based DDAs
-        for thr, new_weights in self.config.get("difficulty_thresholds", []):
-            if self.score >= thr:
-                self.pool.weights = new_weights

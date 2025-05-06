@@ -10,6 +10,7 @@ BlockHarness is a simulation environment and parameter tuning testbed for a Tetr
 *   **Streamlit UI:** An interactive "Parameter Playground" to configure simulations and view results.
 *   **Simulation Runner:** Run batches of simulations to test parameter effectiveness.
 *   **Performance Analysis:** Basic statistical summary and charts for simulation results (Score, Moves, Lines).
+*   **Dynamic Difficulty Adjustment:** Adaptive block generation based on player performance metrics.
 
 ## How it Works
 
@@ -21,7 +22,7 @@ BlockHarness simulates games played by a simple AI. The goal is often to test ho
     *   `game_engine.py`: Manages the main game loop, state (score, lines, blocks), block spawning, move validation, placement, line clearing, scoring, and difficulty adjustments.
     *   `board.py`: Represents the game board (grid) and handles block placement, collision detection, and line clearing logic.
     *   `block.py`: (Implicitly used) Defines the structure and rotation of different block shapes (defined in `shapes.py`).
-    *   `block_pool.py`: Manages the pool of upcoming blocks, sampling them based on configured weights which can change dynamically based on score (difficulty).
+    *   `block_pool.py`: Manages the pool of upcoming blocks with dynamic difficulty adjustment. It generates blocks based on player performance metrics, providing best-fit blocks to help players when they struggle and challenging game-over blocks when they perform well.
     *   `ai_player.py`: Implements the AI logic. The current AI uses a greedy heuristic: it simulates placing the current block in all valid positions and chooses the one that clears the most lines *immediately*.
 
 2.  **`app.py`**: The main Streamlit application.
@@ -118,4 +119,25 @@ BlockHarness simulates games played by a simple AI. The goal is often to test ho
 
 *   **Streamlit:** For creating the interactive web UI.
 *   **Pandas:** For data manipulation and analysis of simulation results.
-*   **Pygame:** Likely used for game logic internals (e.g., potentially handling sprites or basic graphics if `play.py` offers visualization) or required by a sub-dependency. 
+*   **Pygame:** Likely used for game logic internals (e.g., potentially handling sprites or basic graphics if `play.py` offers visualization) or required by a sub-dependency.
+
+## Block Generation Algorithm
+
+The system uses an adaptive block generation algorithm that adjusts based on player performance:
+
+### Key Metrics
+- **Clear Rate**: Ratio of lines cleared to moves made
+- **Score**: Current player score
+- **Best Fit Block**: Block that would clear the most lines on the current board
+- **Game Over Block**: Block that cannot be placed anywhere on the current board
+
+### Algorithm Behavior
+1. For players with **low score** (below score threshold):
+   - When clear rate is **low**: Generates helpful "best fit" blocks to assist the player
+   - When clear rate is **medium**: Generates best fit blocks in every 2nd tray
+   - When clear rate is **high**: Generates best fit blocks in every 3rd tray
+
+2. For players with **high score** (above score threshold):
+   - Occasionally generates challenging "game over" blocks to increase difficulty
+
+This dynamic system ensures that the game maintains an appropriate difficulty level based on player skill, providing assistance when needed and increasing challenge as players improve. 

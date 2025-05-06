@@ -1,18 +1,5 @@
 # engine/shapes.py
-# Eleven example shapes (feel free to expand)
-# SHAPES_OLD = [
-#     [(0, 0)],                                   # 1. single
-#     [(0, 0), (0, 1)],                           # 2. 1×2
-#     [(0, 0), (0, 1), (1, 0), (1, 1)],           # 3. 2×2 square
-#     [(0, 0), (1, 0), (2, 0)],                   # 4. 3×1 line
-#     [(0, 0), (1, 0), (1, 1)],                   # 5. L-shape
-#     [(0, 0), (1, 0), (1, 1), (1, 2)],           # 6. long L-shape
-#     [(0, 1), (1, 0), (1, 1), (1, 2)],           # 7. T-shape
-#     [(0, 0), (0, 1), (1, 1), (1, 2)],           # 8. Z-shape
-#     [(1, 0), (1, 1), (0, 1), (0, 2)],           # 9. S-shape
-#     [(0, 1), (1, 0), (1, 1), (1, 2), (2, 1)],   # 10. Plus-shape
-#     [(0,0), (0,1), (0,2), (1,1), (2,1)]         # 11. longT-shape
-#     ]
+# 41 shapes in total, Exactly as in the original game
 
 SHAPES = {
    "1x1-square"  : [(0,0)],                                              # Square

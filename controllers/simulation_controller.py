@@ -1,11 +1,10 @@
 # controllers/simulation_controller.py
 import time
 import pygame
-from typing import Dict, Tuple, List
+from typing import Dict
 
 from controllers.game_controller import GameController 
 from controllers.ai_controller import AIController
-from ui.colours import BG_COLOR
 from ai.registry import registry as ai_registry
 from data.stats_manager import StatsManager
 
