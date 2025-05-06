@@ -4,9 +4,9 @@ from typing import Dict, List, Tuple, Optional, Set
 from engine.board import Board
 from engine.block_pool import BlockPool
 from engine.block import Block
+from engine.dda import DDA
 from ui.animation import AnimationManager, FadeoutAnimation
 from utils.metrics_manager import MetricsManager
-from dda.registry import registry as dda_registry
 from config.defaults import DEFAULT_WEIGHTS, SHAPES
 
 
@@ -21,7 +21,7 @@ class GameEngine:
             self.config["shapes"] = SHAPES.copy()
             
         if "shape_weights" not in self.config:
-            self.config["shape_weights"] = DEFAULT_WEIGHTS.copy()
+            self.config["shape_weights"] = DEFAULT_WEIGHTS
         
         # Initialize board
         self.board = Board()
@@ -40,7 +40,7 @@ class GameEngine:
             print(f"[engine/game_engine.py][40] Error initializing BlockPool: {e}, using fallback defaults")
             # Fallback to default shapes and weights
             self.config["shapes"] = SHAPES.copy()
-            self.config["shape_weights"] = DEFAULT_WEIGHTS.copy()
+            self.config["shape_weights"] = DEFAULT_WEIGHTS
             self.pool = BlockPool(self.config["shapes"], self.config["shape_weights"])
             
         self._current_block = None
@@ -51,22 +51,15 @@ class GameEngine:
         
         # Create and initialize DDA algorithm
         try:
-            dda_name = self.config.get("dda_algorithm", "OpportunityDDA")
-            self.dda_algorithm = dda_registry.create_algorithm(dda_name)
-            dda_params = self.config.get("dda_params", {})
-            self.dda_algorithm.initialize(dda_params)
+            # Initialize the single DDA implementation
+            self.dda_algorithm = DDA()
+            self.dda_algorithm.initialize(config)
         except Exception as e:
-            print(f"[engine/game_engine.py][59] Error initializing DDA algorithm: '{dda_name}', using fallback MetricsDDA")
-            # Fallback to MetricsDDA
-            try:
-                self.dda_algorithm = dda_registry.create_algorithm("MetricsDDA")
-                self.dda_algorithm.initialize({})
-            except Exception as fallback_error:
-                print(f"[engine/game_engine.py][65] Error initializing fallback DDA algorithm: {fallback_error}, using OpportunityDDA")
-                # Try OpportunityDDA as last resort
-                self.dda_algorithm = dda_registry.create_algorithm("OpportunityDDA")
-                self.dda_algorithm.initialize({})
-        
+            print(f"[engine/game_engine.py][59] Error initializing DDA algorithm: {e}")
+            # Create a backup instance with default configuration
+            self.dda_algorithm = DDA()
+            self.dda_algorithm.initialize({})
+
         # Initialize metrics manager
         try:
             self.metrics_manager = MetricsManager(config)

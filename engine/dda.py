@@ -1,20 +1,16 @@
 from typing import Dict, List, Optional, Tuple, Any
 import random
-from dda.base_dda import BaseDDAAlgorithm
-from dda.registry import registry
 from engine.block import Block
 
 
-class OpportunityDDA(BaseDDAAlgorithm):
-    """DDA algorithm that adjusts difficulty based on best-fit blocks and game-over opportunities."""
-    
-    display_name = "Opportunity Adaptive"
+class DDA:
+    """Dynamic Difficulty Adjustment algorithm that adjusts difficulty based on best-fit blocks and game-over opportunities."""
     
     def __init__(self):
-        """Initialize the best-fit DDA algorithm."""
+        """Initialize the DDA algorithm."""
         self.tray_counter = 0  # Counter to keep track of tray refills
         self.L = 1  # Frequency of best-fit block generation (1-3)
-        self.score_threshold = 1000  # Score threshold for game-over opportunity
+        self.score_threshold = 100  # Score threshold for game-over opportunity
         self.low_clear_rate = 0.5  # Lower bound for clear rate
         self.high_clear_rate = 0.8  # Upper bound for clear rate
         self.n_best_fit_blocks = 1  # Number of best fit blocks to generate
@@ -22,12 +18,12 @@ class OpportunityDDA(BaseDDAAlgorithm):
     
     def initialize(self, config_params: Dict[str, Any]) -> None:
         """Initialize algorithm with configuration parameters."""
-        params = config_params.get("opportunity_dda", {})
+        params = config_params.get("dda", {})
         
         # Get best-fit parameters from configuration
         self.low_clear_rate = params.get("low_clear_rate", 0.5)
         self.high_clear_rate = params.get("high_clear_rate", 0.8)
-        self.score_threshold = params.get("score_threshold", 1000)
+        self.score_threshold = params.get("score_threshold", 100)
         self.n_best_fit_blocks = params.get("n_best_fit_blocks", 1)
         self.n_game_over_blocks = params.get("n_game_over_blocks", 1)
         
@@ -214,6 +210,3 @@ class OpportunityDDA(BaseDDAAlgorithm):
         
         # Generate fully random distinct blocks
         return self._select_distinct_blocks(shape_names, shapes_dict, count)
-
-# Register the best-fit DDA algorithm
-registry.register(OpportunityDDA) 

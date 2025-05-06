@@ -4,55 +4,20 @@ from engine.shapes import SHAPES
 # Get the number of shapes in the dictionary
 SHAPE_COUNT = len(SHAPES)
 
-# Create weight arrays with appropriate length
-DEFAULT_WEIGHTS = [0] * SHAPE_COUNT
-# Set weights for simple shapes (first ~10 shapes)
-for i in range(min(10, SHAPE_COUNT)):
-    DEFAULT_WEIGHTS[i] = 2 if i < 4 else 1
-    
-# Create difficulty threshold weights
-HARDER_WEIGHTS = [0] * SHAPE_COUNT
-HARDEST_WEIGHTS = [0] * SHAPE_COUNT
-# Set weights for harder difficulty
-for i in range(min(10, SHAPE_COUNT)):
-    HARDER_WEIGHTS[i] = 1 if i == 0 else (3 if i == 7 else (1 if i >= 8 else 2))
-    HARDEST_WEIGHTS[i] = 1 if i <= 1 else (4 if i == 7 else (2 if i >= 8 else 3))
+# Enumeration       [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41]
+DEFAULT_WEIGHTS =   [1,5,5,5,5,5,5,5,5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 1, 1, 1, 1, 1], # initial bias with appropriate length
 
-# Rescue weights for emergency situations
-RESCUE_WEIGHTS = [0] * SHAPE_COUNT
-if SHAPE_COUNT > 0:
-    RESCUE_WEIGHTS[0] = 10  # Very high weight for simplest shape
-if SHAPE_COUNT > 1:
-    RESCUE_WEIGHTS[1] = 8   # High weight for second shape
-    
 # Default configuration
 CONFIG = {
     "shapes": SHAPES,
-    "shape_weights": DEFAULT_WEIGHTS,           # initial bias with appropriate length
-    "difficulty_thresholds": [
-        (1000, HARDER_WEIGHTS),                # harder
-        (3000, HARDEST_WEIGHTS),               # hardest
-    ],
-    "dda_algorithm": "MetricsDDA",           # default DDA algorithm
+    
     "dda_params": {                            # algorithm-specific parameters
-        "thresholds": [
-            (1000, HARDER_WEIGHTS),            # harder
-            (3000, HARDEST_WEIGHTS),           # hardest
-        ],
-        "metrics_dda": {
-            "initial_difficulty": 3,                 # Starting difficulty (1-10)
-            "low_clear": 0.30,                       # From existing metrics_flow
-            "high_clear": 0.70,                      # From existing metrics_flow
-            "danger_cut": 0.80,                      # From existing metrics_flow
-            "rescue_shape_weights": RESCUE_WEIGHTS,  # Weights for rescue mode
-            "size_caps": [3, 3, 3, 4, 4, 4, 5, 5, 5, 5]  # Max shape size per difficulty level
-        },
-        "opportunity_dda": {
-            "low_clear_rate": 0.5,                   # Threshold for L=1
-            "high_clear_rate": 0.8,                  # Threshold for L=3
-            "n_best_fit_blocks": 1,                  # Number of best fit blocks to preview out of 3
-            "score_threshold": 1000,                  # Score threshold for game-over opportunity
-            "n_game_over_blocks": 1                  # Number of best fit blocks to preview out of 3
+            "dda": {
+            "low_clear_rate":       0.5,                   # Threshold for L=1
+            "high_clear_rate":      0.8,                  # Threshold for L=3
+            "n_best_fit_blocks":    1,                  # Number of best fit blocks to preview out of 3
+            "score_threshold":      100,                  # Score threshold for game-over opportunity
+            "n_game_over_blocks":   1                  # Number of best fit blocks to preview out of 3
         }
     },
     # Metrics configuration
@@ -73,6 +38,8 @@ CONFIG = {
     "metrics_timing": {
         "max_time_per_move": 8.0,                                 # seconds
     },
+
+
     # Configuration for which metrics are displayed in the state section
     "viewable_metrics": {
         # Game Analysis Metrics

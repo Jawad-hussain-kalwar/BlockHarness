@@ -53,10 +53,6 @@ class MainView:
         """Update the AI player dropdown with available AI players."""
         self.simulation_section.update_ai_player_dropdown(ai_players)
     
-    def update_dda_algorithm_dropdown(self, dda_algorithms):
-        """Update the DDA algorithm dropdown with available algorithms."""
-        self.dda_section.update_dda_algorithm_dropdown(dda_algorithms)
-    
     def draw(self, surface, engine, simulation_running=False, current_run=0, simulation_runs=0, simulation_over=False, simulation_stats=None):
         """Draw all UI sections."""
         # Clear the screen
@@ -116,10 +112,6 @@ class MainView:
     def get_simulation_values(self):
         """Get the current simulation values from the simulation section."""
         return self.simulation_section.get_simulation_values()
-    
-    def get_selected_dda_algorithm(self):
-        """Get the selected DDA algorithm from the dropdown."""
-        return self.dda_section.get_selected_dda_algorithm()
     
     def handle_board_click(self, x, y):
         """Handle click on the game board."""

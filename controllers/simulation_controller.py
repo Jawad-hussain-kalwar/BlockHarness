@@ -7,7 +7,6 @@ from controllers.game_controller import GameController
 from controllers.ai_controller import AIController
 from ui.colours import BG_COLOR
 from ai.registry import registry as ai_registry
-from dda.registry import registry as dda_registry
 from data.stats_manager import StatsManager
 
 
@@ -97,9 +96,6 @@ class SimulationController(GameController):
         
         # Initialize the AI player dropdown with available AI players
         self.main_view.update_ai_player_dropdown(self.get_available_ai_players())
-        
-        # Initialize the DDA algorithm dropdown with available algorithms
-        self.main_view.update_dda_algorithm_dropdown(self.get_available_dda_algorithms())
         
         # Add flags for simulation over state
         self.simulation_over = False
@@ -207,7 +203,8 @@ class SimulationController(GameController):
         Returns:
             A list of (value, display_text) tuples for use in a dropdown menu
         """
-        return dda_registry.get_available_algorithms()
+        # DDA registry has been removed, return empty list
+        return []
     
     def apply_config_changes(self):
         """Apply configuration changes from the main view."""
