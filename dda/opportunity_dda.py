@@ -71,8 +71,8 @@ class OpportunityDDA(BaseDDAAlgorithm):
         else:
             self.L = 1
         
-        # Check for game-over opportunity with score threshold
-        if opportunity and score >= self.score_threshold:
+        # Only consider game-over opportunity if score threshold is reached
+        if opportunity and score >= self.score_threshold and game_over_block != "None":
             # Game over mode - generate game-over block and no fitting blocks
             return self._get_game_over_weights(engine_state, game_over_block)
         
@@ -120,8 +120,46 @@ class OpportunityDDA(BaseDDAAlgorithm):
         
         return weights
     
+    def _select_distinct_blocks(self, shape_names: List[str], shapes_dict: Dict[str, List[Tuple[int, int]]], 
+                               count: int, bias_shape: str = None, bias_weight: int = 5) -> List[Block]:
+        """Select 'count' distinct block types, with optional bias toward a specific shape.
+        
+        Args:
+            shape_names: List of available shape names
+            shapes_dict: Dictionary mapping shape names to shape definitions
+            count: Number of blocks to generate
+            bias_shape: Optional shape to favor in selection
+            bias_weight: Weight to give the bias_shape
+            
+        Returns:
+            List[Block]: List of distinct blocks
+        """
+        if len(shape_names) < count:
+            # Not enough distinct shapes available, will need duplicates
+            return [Block(shapes_dict[random.choice(shape_names)]) for _ in range(count)]
+        
+        # Create a copy of shape_names to avoid modifying the original
+        available_shapes = shape_names.copy()
+        selected_blocks = []
+        
+        # If we have a bias shape and it's in our available shapes, try to include it first
+        if bias_shape and bias_shape in available_shapes and random.random() < 0.8:  # 80% chance
+            selected_blocks.append(Block(shapes_dict[bias_shape]))
+            available_shapes.remove(bias_shape)
+            count -= 1
+        
+        # Randomly select the remaining distinct shapes
+        selected_shape_names = random.sample(available_shapes, count)
+        for name in selected_shape_names:
+            selected_blocks.append(Block(shapes_dict[name]))
+            
+        # Shuffle the blocks to avoid predictable placement
+        random.shuffle(selected_blocks)
+        
+        return selected_blocks
+    
     def get_next_blocks(self, engine_state, count: int = 3) -> List[Block]:
-        """Get the next blocks based on the best-fit strategy.
+        """Get the next blocks based on the best-fit strategy with distinct blocks.
         
         Args:
             engine_state: The current game engine state
@@ -148,74 +186,34 @@ class OpportunityDDA(BaseDDAAlgorithm):
         lines_cleared = metrics.get("lines_cleared", 0)
         clear_rate = lines_cleared / max(1, move_count)  # Avoid division by zero
         
-        # Initialize list of blocks to generate
-        blocks = []
-        
         # Game over opportunity with score threshold
-        if opportunity and score >= self.score_threshold:
-            # Include game-over block if it exists
-            if game_over_block != "None" and game_over_block in shape_names:
-                game_over_shape = shapes_dict[game_over_block]
-                
-                # Add n_game_over_blocks instances of the game over block
-                for _ in range(min(self.n_game_over_blocks, count)):
-                    blocks.append(Block(game_over_shape))
-                
-                # Fill the rest with random shapes
-                remaining_shapes = [s for s in shape_names if s != game_over_block]
-                for _ in range(count - min(self.n_game_over_blocks, count)):
-                    if remaining_shapes:
-                        random_shape_name = random.choice(remaining_shapes)
-                        blocks.append(Block(shapes_dict[random_shape_name]))
-                    else:
-                        # Fallback if no other shapes available
-                        blocks.append(Block(game_over_shape))
-            else:
-                # If no game-over block, generate random blocks
-                for _ in range(count):
-                    random_shape_name = random.choice(shape_names)
-                    blocks.append(Block(shapes_dict[random_shape_name]))
-        else:
-            # Update L based on clear rate
-            if clear_rate >= self.high_clear_rate:
-                self.L = 3
-            elif clear_rate >= self.low_clear_rate:
-                self.L = 2
-            else:
-                self.L = 1
-            
-            # Check if it's time to include a best-fit block
-            if best_fit_block != "None" and self.tray_counter % self.L == 0:
-                # Include a best-fit block if it exists
-                if best_fit_block in shape_names:
-                    best_fit_shape = shapes_dict[best_fit_block]
-                    
-                    # Add n_best_fit_blocks instances of the best fit block
-                    for _ in range(min(self.n_best_fit_blocks, count)):
-                        blocks.append(Block(best_fit_shape))
-                    
-                    # Fill the rest with random shapes
-                    remaining_shapes = [s for s in shape_names if s != best_fit_block]
-                    for _ in range(count - min(self.n_best_fit_blocks, count)):
-                        if remaining_shapes:
-                            random_shape_name = random.choice(remaining_shapes)
-                            blocks.append(Block(shapes_dict[random_shape_name]))
-                        else:
-                            # Fallback if no other shapes available
-                            random_shape_name = random.choice(shape_names)
-                            blocks.append(Block(shapes_dict[random_shape_name]))
-                else:
-                    # If best-fit block not found, generate random blocks
-                    for _ in range(count):
-                        random_shape_name = random.choice(shape_names)
-                        blocks.append(Block(shapes_dict[random_shape_name]))
-            else:
-                # Generate random blocks
-                for _ in range(count):
-                    random_shape_name = random.choice(shape_names)
-                    blocks.append(Block(shapes_dict[random_shape_name]))
+        if opportunity and score >= self.score_threshold and game_over_block != "None":
+            # Check if game over block exists in shapes
+            if game_over_block in shape_names:
+                # Generate blocks with game over block bias
+                return self._select_distinct_blocks(
+                    shape_names, shapes_dict, count, 
+                    bias_shape=game_over_block, bias_weight=10
+                )
         
-        return blocks
+        # Update L based on clear rate
+        if clear_rate >= self.high_clear_rate:
+            self.L = 3
+        elif clear_rate >= self.low_clear_rate:
+            self.L = 2
+        else:
+            self.L = 1
+        
+        # Check if it's time to include a best-fit block
+        if best_fit_block != "None" and best_fit_block in shape_names and self.tray_counter % self.L == 0:
+            # Generate blocks with best fit block bias
+            return self._select_distinct_blocks(
+                shape_names, shapes_dict, count,
+                bias_shape=best_fit_block, bias_weight=5
+            )
+        
+        # Generate fully random distinct blocks
+        return self._select_distinct_blocks(shape_names, shapes_dict, count)
 
 # Register the best-fit DDA algorithm
 registry.register(OpportunityDDA) 
