@@ -86,7 +86,7 @@ class SimulationController(GameController):
         self.simulation_running = False
         self.simulation_runs = 0
         self.current_run = 0
-        self.steps_per_second = 1
+        self.steps_per_second = 0
         self.last_simulation_step = 0
         
         # Initialize simulation stats manager
@@ -100,6 +100,10 @@ class SimulationController(GameController):
         
         # Initialize the DDA algorithm dropdown with available algorithms
         self.main_view.update_dda_algorithm_dropdown(self.get_available_dda_algorithms())
+        
+        # Add flags for simulation over state
+        self.simulation_over = False
+        self.simulation_summary_stats = None
     
     def restart_simulation(self):
         """Restart the game but preserve simulation state variables"""
@@ -116,41 +120,58 @@ class SimulationController(GameController):
         self.engine.animation_duration_ms = 0
         
         # Sync the engines (they should be identical)
-        print(f"Restarting simulation run {self.current_run + 1}/{self.simulation_runs}")
+        print(f"[controllers/simulation_controller.py][123] Restarting simulation run {self.current_run + 1}/{self.simulation_runs}")
+    
+    def restart_game(self):
+        """Override restart game to also clear simulation over state"""
+        # Call parent restart_game implementation to reset display engine
+        super().restart_game()
+        # Also reset the AI controller's engine to ensure fresh simulation state
+        self.ai_controller.reset_engine()
+        # Restore animation duration in AI engine to default
+        self.ai_controller.engine.animation_duration_ms = self.default_animation_duration
+        # Reset simulation state flags and counters
+        self.simulation_running = False
+        self.current_run = 0
+        self.simulation_over = False
+        self.simulation_summary_stats = None
     
     def start_simulation(self):
         """Start the AI simulation at the specified steps per second"""
-        if not self.simulation_running:
-            # Get simulation parameters from main view
-            simulation_values = self.main_view.get_simulation_values()
-            if simulation_values:
-                self.steps_per_second, self.simulation_runs, ai_player_name = simulation_values
-                
-                # Set the AI player if one was selected
-                if ai_player_name:
-                    self.ai_controller.set_ai_player(ai_player_name)
-                
-                self.simulation_running = True
-                self.current_run = 0
-                self.last_simulation_step = time.time()
-                self.simulation_stats_manager.clear_stats()
-                
-                # Set animation duration to 0 for instant line clears in simulation mode
-                self.engine.animation_duration_ms = 0
-                # Also set it in the AI controller's engine
-                self.ai_controller.engine.animation_duration_ms = 0
-                
-                # If game was over, restart first run
-                if self.engine.game_over:
-                    self.restart_simulation()
+        # Always start fresh simulation regardless of previous state
+        # Reset simulation flags
+        self.simulation_over = False
+        self.simulation_summary_stats = None
+
+        # Get simulation parameters from the UI
+        simulation_values = self.main_view.get_simulation_values()
+        if simulation_values:
+            self.steps_per_second, self.simulation_runs, ai_player_name = simulation_values
+
+            # Set the AI player if one was selected
+            if ai_player_name:
+                self.ai_controller.set_ai_player(ai_player_name)
+
+            # Reset both engines to ensure fresh start
+            self.restart_simulation()
+            # Activate simulation and initialize run counter
+            self.simulation_running = True
+            self.current_run = 1
+            self.last_simulation_step = time.time()
+            # Clear previous batch statistics
+            self.simulation_stats_manager.clear_stats()
+            # Disable animations for simulation runs
+            self.engine.animation_duration_ms = 0
+            self.ai_controller.engine.animation_duration_ms = 0
     
     def abort_simulation(self):
         """Stop the AI simulation and allow manual play"""
-        self.simulation_running = False
-        self.current_run = 0  # Reset run count when aborting simulation
-        
-        # Restore normal animation duration when exiting simulation mode
-        self.engine.animation_duration_ms = self.default_animation_duration
+        if self.simulation_running:
+            self.simulation_running = False
+            self.current_run = 0  # Reset run count when aborting simulation
+            
+            # Restore normal animation duration when exiting simulation mode
+            self.engine.animation_duration_ms = self.default_animation_duration
     
     def run_simulation_step(self):
         """Execute one AI step in the simulation"""
@@ -199,7 +220,7 @@ class SimulationController(GameController):
             # Update engine config
             self.reset_engine(preserve_config=True)
             
-            print("Applied configuration changes")
+            print("[controllers/simulation_controller.py][220] Applied configuration changes")
             return True
         return False
     
@@ -237,11 +258,12 @@ class SimulationController(GameController):
                 action = ui_action.get("action")
                 if action in ["simulate", "abort", "apply"]:
                     self._handle_simulation_sidebar_actions(ui_action)
-                elif not self.simulation_running:
+                elif action == "restart":
+                    self.restart_game()  # This will also clear simulation_over flag
+                elif not self.simulation_running and not self.simulation_over:
                     # Handle standard game actions only if not in simulation mode
-                    if action == "restart":
-                        self.restart_game()
-                    elif action == "select_block" and not self.engine.game_over:
+                    # and not on simulation over screen
+                    if action == "select_block" and not self.engine.game_over:
                         self.handle_preview_click(ui_action.get("index"))
                     elif action == "place_block" and not self.engine.game_over:
                         self.handle_board_click(ui_action.get("position"))
@@ -254,11 +276,21 @@ class SimulationController(GameController):
                     self.simulation_running = False
                 continue
             
-            # Only allow certain inputs when not in simulation mode
+            # Only allow certain inputs when in simulation mode
             if self.simulation_running:
                 if event.type == pygame.KEYDOWN and event.key in (pygame.K_ESCAPE, pygame.K_q):
                     return False
                 # Skip other inputs during simulation
+                continue
+            
+            # Special handling for simulation over screen
+            if self.simulation_over:
+                if event.type == pygame.KEYDOWN:
+                    if event.key in (pygame.K_ESCAPE, pygame.K_q):
+                        return False
+                    elif event.key == pygame.K_RETURN:
+                        self.restart_game()  # This will also clear simulation_over flag
+                # Skip other inputs on simulation over screen
                 continue
             
             # Handle other keyboard events
@@ -272,7 +304,13 @@ class SimulationController(GameController):
     
     def draw(self) -> None:
         """Render the game state with simulation information to the screen."""
-        self._draw_core(self.simulation_running, self.current_run, self.simulation_runs)
+        self._draw_core(
+            self.simulation_running, 
+            self.current_run, 
+            self.simulation_runs,
+            self.simulation_over,
+            self.simulation_summary_stats
+        )
     
     def _simulation_step_handler(self) -> None:
         """Handle simulation steps with the appropriate timing."""
@@ -286,17 +324,21 @@ class SimulationController(GameController):
                     'lines': self.engine.lines,
                     'blocks_placed': self.engine.blocks_placed
                 }
-                self.simulation_stats_manager.add_run_stats(run_stats, self.ai_controller.get_ai_player_name())
-                
-                # Move to next run or end simulation
-                self.current_run += 1
+                self.simulation_stats_manager.add_run_stats(
+                    run_stats, self.ai_controller.get_ai_player_name()
+                )
+                # Check if this was the last run
                 if self.current_run >= self.simulation_runs:
-                    # End of simulation
-                    self.abort_simulation()
-                    # Restart the game for manual play
-                    self.restart_game()
+                    # End of simulation - set simulation over flag and get summary stats
+                    self.simulation_running = False
+                    self.simulation_over = True
+                    self.simulation_summary_stats = self.simulation_stats_manager.get_stats_summary()
+                    
+                    # Restore normal animation duration 
+                    self.engine.animation_duration_ms = self.default_animation_duration
                 else:
-                    # Start next run
+                    # Prepare for next run
+                    self.current_run += 1
                     self.restart_simulation()
                 
                 # Reset simulation timer for new run

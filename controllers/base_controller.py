@@ -21,6 +21,7 @@ class BaseController:
         # Initialize configuration
         if config:
             config_manager.update(config)
+            print(f"[controllers/base_controller.py][20] Updated config")
         
         # Store the configuration
         self.config = config_manager.get_all()
@@ -77,6 +78,7 @@ class BaseController:
     
     def restart_game(self):
         """Reset the game with the current configuration."""
+        print(f"[controllers/base_controller.py][24] Restarting game...")
         self.reset_engine(preserve_config=True)
     
     def update_config(self, new_config: Dict) -> bool:
@@ -92,6 +94,7 @@ class BaseController:
             return False
             
         # Update config through the config manager (which will notify observers)
+        print(f"[controllers/base_controller.py][97] Updating config")
         config_manager.update(new_config)
         
         return True

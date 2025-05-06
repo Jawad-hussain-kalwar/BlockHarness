@@ -145,21 +145,21 @@ class OpportunityDDAView(TemplateDDAView):
             
             # Validate thresholds
             if not (0 < low_clear_rate < high_clear_rate < 1):
-                print("Thresholds must satisfy: 0 < low_clear_rate < high_clear_rate < 1")
+                print("[ui/views/dda_views/opportunity_dda_view.py][148] Thresholds must satisfy: 0 < low_clear_rate < high_clear_rate < 1")
                 return None
             
             # Validate counts
             if n_best_fit_blocks < 0 or n_best_fit_blocks > 3:
-                print("Best fit blocks count must be between 0 and 3")
+                print("[ui/views/dda_views/opportunity_dda_view.py][150] Best fit blocks count must be between 0 and 3")
                 return None
                 
             if n_game_over_blocks < 0 or n_game_over_blocks > 3:
-                print("Game over blocks count must be between 0 and 3")
+                print("[ui/views/dda_views/opportunity_dda_view.py][152] Game over blocks count must be between 0 and 3")
                 return None
             
             # Validate score threshold
             if score_threshold < 0:
-                print("Score threshold must be positive")
+                print("[ui/views/dda_views/opportunity_dda_view.py][154] Score threshold must be positive")
                 return None
             
             # Return combined configuration
@@ -176,5 +176,5 @@ class OpportunityDDAView(TemplateDDAView):
             }
             
         except (ValueError, IndexError) as e:
-            print(f"Invalid configuration values: {e}")
+            print(f"[ui/views/dda_views/opportunity_dda_view.py][162] Invalid configuration values: {e}")
             return None 

@@ -128,10 +128,18 @@ class GameController(BaseController):
         
         return True
     
-    def _draw_core(self, simulation_running=False, current_run=0, simulation_runs=0) -> None:
+    def _draw_core(self, simulation_running=False, current_run=0, simulation_runs=0, simulation_over=False, simulation_stats=None) -> None:
         """Core drawing logic. Protected method for reuse by subclasses."""
         # Use the main_view to draw all UI components
-        self.main_view.draw(self.window, self.engine, simulation_running, current_run, simulation_runs)
+        self.main_view.draw(
+            self.window, 
+            self.engine, 
+            simulation_running, 
+            current_run, 
+            simulation_runs,
+            simulation_over,
+            simulation_stats
+        )
         
         # Check for game over to save stats
         if self.engine.game_over and not simulation_running:
@@ -172,7 +180,7 @@ class GameController(BaseController):
     
     def draw(self) -> None:
         """Render the game state to the screen."""
-        self._draw_core(False, 0, 0)
+        self._draw_core(False, 0, 0, False, None)
     
     def loop(self) -> None:
         """Main game loop."""

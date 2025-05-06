@@ -45,7 +45,7 @@ class BlockPool:
             shape_name = random.choices(self.shape_names, weights=self.weights, k=1)[0]
         except (ValueError, KeyError) as e:
             # Fallback to uniform selection if weights cause an error
-            print(f"Warning: Error in weighted selection ({e}), falling back to uniform selection")
+            print(f"[engine/block_pool.py][48] Warning: Error in weighted selection ({e}), falling back to uniform selection")
             shape_name = random.choice(self.shape_names)
             
         shape = self.shapes[shape_name]
@@ -90,5 +90,5 @@ class BlockPool:
                 random.choices(self.shape_names, weights=self.weights, k=1)
         except Exception as e:
             # Restore original weights if there's an error
-            print(f"Warning: Error updating weights ({e}), keeping original weights")
+            print(f"[engine/block_pool.py][93] Warning: Error updating weights ({e}), keeping original weights")
             self.weights = original_weights

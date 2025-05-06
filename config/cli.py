@@ -16,6 +16,6 @@ def parse_args():
             with open(args.config, 'r') as f:
                 config = json.load(f)
         except Exception as e:
-            print(f"Error loading config: {e}")
+            print(f"[config/cli.py][19] Error loading config: {e}")
     
     return args, config 

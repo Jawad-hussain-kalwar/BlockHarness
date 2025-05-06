@@ -37,7 +37,7 @@ class GameEngine:
                 self.config["shape_weights"]
             )
         except Exception as e:
-            print(f"Error initializing BlockPool: {e}, using fallback defaults")
+            print(f"[engine/game_engine.py][40] Error initializing BlockPool: {e}, using fallback defaults")
             # Fallback to default shapes and weights
             self.config["shapes"] = SHAPES.copy()
             self.config["shape_weights"] = DEFAULT_WEIGHTS.copy()
@@ -51,18 +51,18 @@ class GameEngine:
         
         # Create and initialize DDA algorithm
         try:
-            dda_name = self.config.get("dda_algorithm", "MetricsDDA")
+            dda_name = self.config.get("dda_algorithm", "OpportunityDDA")
             self.dda_algorithm = dda_registry.create_algorithm(dda_name)
             dda_params = self.config.get("dda_params", {})
             self.dda_algorithm.initialize(dda_params)
         except Exception as e:
-            print(f"Error initializing DDA algorithm: '{dda_name}', using fallback MetricsDDA")
+            print(f"[engine/game_engine.py][59] Error initializing DDA algorithm: '{dda_name}', using fallback MetricsDDA")
             # Fallback to MetricsDDA
             try:
                 self.dda_algorithm = dda_registry.create_algorithm("MetricsDDA")
                 self.dda_algorithm.initialize({})
             except Exception as fallback_error:
-                print(f"Error initializing fallback DDA algorithm: {fallback_error}, using OpportunityDDA")
+                print(f"[engine/game_engine.py][65] Error initializing fallback DDA algorithm: {fallback_error}, using OpportunityDDA")
                 # Try OpportunityDDA as last resort
                 self.dda_algorithm = dda_registry.create_algorithm("OpportunityDDA")
                 self.dda_algorithm.initialize({})
@@ -73,7 +73,7 @@ class GameEngine:
             # Start timing for the first move
             self.metrics_manager.start_move_timer()
         except Exception as e:
-            print(f"Error initializing MetricsManager: {e}")
+            print(f"[engine/game_engine.py][76] Error initializing MetricsManager: {e}")
             # Continue without full metrics tracking if something fails
             self.metrics_manager = MetricsManager({})
             self.metrics_manager.start_move_timer()
@@ -82,7 +82,7 @@ class GameEngine:
         try:
             self._refill_preview()
         except Exception as e:
-            print(f"Error filling preview: {e}")
+            print(f"[engine/game_engine.py][85] Error filling preview: {e}")
             # If refill fails, initialize with empty preview
             self._preview_blocks = []
             self._selected_preview_index = None
@@ -216,7 +216,7 @@ class GameEngine:
                 self.lines += line_count
                 self.score += self.compute_line_score(len(cells_to_clear))
                 # Immediately clear the cells
-                # print("Immediately clearing cells - simulation mode")
+                # print("[engine/game_engine.py][219] Immediately clearing cells - simulation mode")
                 self.board.clear_cells(cells_to_clear)
         else:
             # No lines to clear, just add 1 point for block placement
@@ -328,7 +328,7 @@ class GameEngine:
                 )
             
         except Exception as e:
-            print(f"Error in _refill_preview: {e}")
+            print(f"[engine/game_engine.py][331] Error in _refill_preview: {e}")
             # Fallback to generating simple blocks if DDA or metrics fail
             try:
                 for _ in range(num_to_generate):
@@ -338,7 +338,7 @@ class GameEngine:
                 if self._selected_preview_index is None and self._preview_blocks:
                     self._selected_preview_index = 0
             except Exception as e2:
-                print(f"Critical error in block generation: {e2}")
+                print(f"[engine/game_engine.py][225] Critical error in block generation: {e2}")
                 # Leave preview as is if all attempts fail
     
     def _has_valid_placement(self, block: Block) -> bool:

@@ -57,7 +57,7 @@ class MainView:
         """Update the DDA algorithm dropdown with available algorithms."""
         self.dda_section.update_dda_algorithm_dropdown(dda_algorithms)
     
-    def draw(self, surface, engine, simulation_running=False, current_run=0, simulation_runs=0):
+    def draw(self, surface, engine, simulation_running=False, current_run=0, simulation_runs=0, simulation_over=False, simulation_stats=None):
         """Draw all UI sections."""
         # Clear the screen
         surface.fill(BG_COLOR)
@@ -65,7 +65,7 @@ class MainView:
         # Draw individual sections
         self.dda_section.draw(surface)
         self.simulation_section.draw(surface, simulation_running, current_run, simulation_runs)
-        self.game_section.draw(surface, engine)
+        self.game_section.draw(surface, engine, simulation_over, simulation_stats)
         self.state_section.draw(surface, engine)
     
     def handle_event(self, event):

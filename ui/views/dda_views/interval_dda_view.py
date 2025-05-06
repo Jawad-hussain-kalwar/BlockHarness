@@ -146,19 +146,19 @@ class IntervalDDAView:
             
             # Validate ranges
             if steps_to_rescue < 1:
-                print("Steps to Rescue must be at least 1")
+                print("[ui/views/dda_views/interval_dda_view.py][149] Steps to Rescue must be at least 1")
                 return None
                 
             if rescue_block_count < 1 or rescue_block_count > 3:
-                print("Number of Rescue Blocks must be between 1 and 3")
+                print("[ui/views/dda_views/interval_dda_view.py][151] Number of Rescue Blocks must be between 1 and 3")
                 return None
                 
             if steps_to_awkward < 1:
-                print("Steps to Awkward must be at least 1")
+                print("[ui/views/dda_views/interval_dda_view.py][153] Steps to Awkward must be at least 1")
                 return None
                 
             if awkward_block_count < 1 or awkward_block_count > 3:
-                print("Number of Awkward Blocks must be between 1 and 3")
+                print("[ui/views/dda_views/interval_dda_view.py][155] Number of Awkward Blocks must be between 1 and 3")
                 return None
             
             # Build configuration dictionary
@@ -171,5 +171,5 @@ class IntervalDDAView:
                 }
             }
         except ValueError as e:
-            print(f"Invalid configuration values: {e}")
+            print(f"[ui/views/dda_views/interval_dda_view.py][161] Invalid configuration values: {e}")
             return None 

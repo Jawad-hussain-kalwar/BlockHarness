@@ -155,7 +155,7 @@ class MetricsDDAView(TemplateDDAView):
             # Parse initial difficulty
             initial_difficulty = int(self.init_difficulty_field.value)
             if not (1 <= initial_difficulty <= 10):
-                print("Initial difficulty must be between 1 and 10")
+                print("[ui/views/dda_views/metrics_dda_view.py][158] Initial difficulty must be between 1 and 10")
                 return None
             
             # Parse threshold values
@@ -165,17 +165,17 @@ class MetricsDDAView(TemplateDDAView):
             
             # Validate thresholds
             if not (0 < low_clear < high_clear < 1):
-                print("Thresholds must satisfy: 0 < low_clear < high_clear < 1")
+                print("[ui/views/dda_views/metrics_dda_view.py][160] Thresholds must satisfy: 0 < low_clear < high_clear < 1")
                 return None
             
             if not (0 < danger_cut < 1):
-                print("Danger threshold must be between 0 and 1")
+                print("[ui/views/dda_views/metrics_dda_view.py][162] Danger threshold must be between 0 and 1")
                 return None
             
             # Parse rescue weights (format: "w1,w2")
             rescue_weight_parts = self.rescue_weights_field.value.split(",")
             if len(rescue_weight_parts) != 2:
-                print("Rescue weights must be two comma-separated values")
+                print("[ui/views/dda_views/metrics_dda_view.py][164] Rescue weights must be two comma-separated values")
                 return None
                 
             w1 = int(rescue_weight_parts[0])
@@ -185,12 +185,12 @@ class MetricsDDAView(TemplateDDAView):
             # Parse size caps (format: "c1,c2,c3,c4,c5,c6,c7,c8,c9,c10")
             size_cap_parts = self.size_caps_field.value.split(",")
             if len(size_cap_parts) != 10:
-                print("Size caps must have 10 comma-separated values")
+                print("[ui/views/dda_views/metrics_dda_view.py][166] Size caps must have 10 comma-separated values")
                 return None
                 
             size_caps = [int(cap) for cap in size_cap_parts]
             if not all(1 <= cap <= 10 for cap in size_caps):
-                print("Size caps must be between 1 and 10")
+                print("[ui/views/dda_views/metrics_dda_view.py][168] Size caps must be between 1 and 10")
                 return None
             
             # Return combined configuration
@@ -208,5 +208,5 @@ class MetricsDDAView(TemplateDDAView):
             }
             
         except (ValueError, IndexError) as e:
-            print(f"Invalid configuration values: {e}")
+            print(f"[ui/views/dda_views/metrics_dda_view.py][170] Invalid configuration values: {e}")
             return None 

@@ -33,7 +33,7 @@ class FontManager:
             self.fonts[cache_key] = font
             return font
         except FileNotFoundError:
-            print(f"Font file {font_name}.ttf not found, using system default")
+            print(f"[ui/font_manager.py][36] Font file {font_name}.ttf not found, using system default")
             # Fall back to default font
             return pygame.font.SysFont('Arial', size)
 

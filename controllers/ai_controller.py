@@ -23,7 +23,7 @@ class AIController(BaseController):
             try:
                 self.ai_player = registry.create_player(ai_player_name)
             except KeyError:
-                print(f"AI player '{ai_player_name}' not found, falling back to Greedy")
+                print(f"[controllers/ai_controller.py][26] AI player '{ai_player_name}' not found, falling back to Greedy")
                 self.ai_player = registry.create_player("Greedy")
         else:
             self.ai_player = registry.create_player("Greedy")
@@ -41,7 +41,7 @@ class AIController(BaseController):
             self.ai_player = registry.create_player(ai_player_name)
             return True
         except KeyError:
-            print(f"AI player '{ai_player_name}' not found")
+            print(f"[controllers/ai_controller.py][44] AI player '{ai_player_name}' not found")
             return False
     
     def get_ai_player_name(self) -> str:

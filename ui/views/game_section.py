@@ -56,7 +56,7 @@ class GameSection:
         
         self.overlay_view = OverlayView(self.window_size, font, small_font)
     
-    def draw(self, surface, engine):
+    def draw(self, surface, engine, simulation_over=False, simulation_stats=None):
         """Draw all game section components."""
         # Draw debug border if enabled
         draw_debug_rect(surface, self.rect, "game")
@@ -74,8 +74,11 @@ class GameSection:
         # Draw HUD (score, lines, blocks, hints)
         self.hud_view.draw(surface, engine)
         
-        # Draw game over overlay if needed
-        if engine.game_over:
+        # Draw simulation over overlay if simulation just finished
+        if simulation_over:
+            self.overlay_view.draw_simulation_over(surface, simulation_stats)
+        # Otherwise draw regular game over if needed
+        elif engine.game_over:
             self.overlay_view.draw_game_over(surface, engine)
     
     def handle_board_click(self, x, y):

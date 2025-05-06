@@ -126,8 +126,8 @@ class SimulationSection:
         if not simulation_running:
             sim_text = self.font.render("Start", True, TEXT_PRIMARY)
         else:
-            # Show progress if simulation is running
-            sim_text = self.small_font.render(f"Run {current_run}/{simulation_runs}", True, TEXT_PRIMARY)
+            # Show 1-based run count (initially 1 instead of 0)
+            sim_text = self.small_font.render(f"Run {current_run or 1}/{simulation_runs}", True, TEXT_PRIMARY)
         
         text_x = self.simulate_button_rect.x + self.simulate_button_rect.width // 2 - sim_text.get_width() // 2
         text_y = self.simulate_button_rect.y + self.simulate_button_rect.height // 2 - sim_text.get_height() // 2
@@ -183,13 +183,13 @@ class SimulationSection:
             # Parse steps per second
             steps_per_second = float(self.steps_per_second_field.value)
             if steps_per_second < 0:
-                print("Steps per second must be greater than or equal to 0")
+                print("[ui/views/simulation_section.py][186] Steps per second must be greater than or equal to 0")
                 return None
             
             # Parse number of runs
             runs = int(self.runs_field.value)
             if runs <= 0:
-                print("Number of runs must be greater than 0")
+                print("[ui/views/simulation_section.py][190] Number of runs must be greater than 0")
                 return None
             
             # Get selected AI player
@@ -198,5 +198,5 @@ class SimulationSection:
             return (steps_per_second, runs, ai_player)
             
         except ValueError as e:
-            print(f"Invalid simulation values: {e}")
+            print(f"[ui/views/simulation_section.py][192] Invalid simulation values: {e}")
             return None 
