@@ -33,7 +33,7 @@ CONFIG = {
         (1000, HARDER_WEIGHTS),                # harder
         (3000, HARDEST_WEIGHTS),               # hardest
     ],
-    "dda_algorithm": "ThresholdDDA",           # default DDA algorithm
+    "dda_algorithm": "MetricsDDA",           # default DDA algorithm
     "dda_params": {                            # algorithm-specific parameters
         "thresholds": [
             (1000, HARDER_WEIGHTS),            # harder
@@ -46,6 +46,13 @@ CONFIG = {
             "danger_cut": 0.80,                      # From existing metrics_flow
             "rescue_shape_weights": RESCUE_WEIGHTS,  # Weights for rescue mode
             "size_caps": [3, 3, 3, 4, 4, 4, 5, 5, 5, 5]  # Max shape size per difficulty level
+        },
+        "opportunity_dda": {
+            "low_clear_rate": 0.5,                   # Threshold for L=1
+            "high_clear_rate": 0.8,                  # Threshold for L=3
+            "n_best_fit_blocks": 1,                  # Number of best fit blocks to preview out of 3
+            "score_threshold": 1000,                  # Score threshold for game-over opportunity
+            "n_game_over_blocks": 1                  # Number of best fit blocks to preview out of 3
         }
     },
     # Metrics configuration

@@ -13,7 +13,7 @@ from ui.layout import (
 from ui.input_field import InputField
 from ui.dropdown_menu import DropdownMenu
 from ui.debug import draw_debug_rect
-from ui.views.dda_views import ThresholdDDAView, StaticDDAView, MetricsDDAView, IntervalDDAView
+from ui.views.dda_views import MetricsDDAView, OpportunityDDAView
 
 
 class DDASection:
@@ -54,14 +54,12 @@ class DDASection:
         dda_view_height = SECTION_HEIGHT - (y - self.rect.y) - FIELD_HEIGHT * 2 - FIELD_SPACING * 2 - PADDING
         self.dda_view_rect = pygame.Rect(left_x, y, field_width, dda_view_height)
         
-        # Initialize DDA views
-        self.threshold_dda_view = ThresholdDDAView(self.dda_view_rect, font, small_font)
-        self.static_dda_view = StaticDDAView(self.dda_view_rect, font, small_font)
+        # Initialize DDA views (only the ones that exist)
         self.metrics_dda_view = MetricsDDAView(self.dda_view_rect, font, small_font)
-        self.interval_dda_view = IntervalDDAView(self.dda_view_rect, font, small_font)
+        self.opportunity_dda_view = OpportunityDDAView(self.dda_view_rect, font, small_font)
         
         # Set default active view
-        self.active_dda_view = self.threshold_dda_view
+        self.active_dda_view = self.metrics_dda_view
         
         # Apply button (positioned after the DDA view container)
         apply_button_y = self.dda_view_rect.y + self.dda_view_rect.height + FIELD_SPACING
@@ -70,14 +68,12 @@ class DDASection:
     def update_config_fields(self, config):
         """Update input fields from config."""
         # Update the active DDA view's fields
-        self.threshold_dda_view.update_config_fields(config)
-        self.static_dda_view.update_config_fields(config)
         self.metrics_dda_view.update_config_fields(config)
-        self.interval_dda_view.update_config_fields(config)
+        self.opportunity_dda_view.update_config_fields(config)
         
         # Set default DDA algorithm if available
         if self.dda_algorithm_dropdown.options:
-            dda_algorithm = config.get("dda_algorithm", "ThresholdDDA")
+            dda_algorithm = config.get("dda_algorithm", "MetricsDDA")
             for i, (value, _) in enumerate(self.dda_algorithm_dropdown.options):
                 if value == dda_algorithm:
                     self.dda_algorithm_dropdown.selected_index = i
@@ -102,14 +98,10 @@ class DDASection:
 
     def _update_active_dda_view(self, algorithm_name):
         """Update the active DDA view based on the selected algorithm."""
-        if algorithm_name == "ThresholdDDA":
-            self.active_dda_view = self.threshold_dda_view
-        elif algorithm_name == "StaticDDA":
-            self.active_dda_view = self.static_dda_view
-        elif algorithm_name == "MetricsDDA":
+        if algorithm_name == "MetricsDDA":
             self.active_dda_view = self.metrics_dda_view
-        elif algorithm_name == "IntervalDDA":
-            self.active_dda_view = self.interval_dda_view
+        elif algorithm_name == "OpportunityDDA":
+            self.active_dda_view = self.opportunity_dda_view
         # Add future DDA types here
 
     def draw(self, surface):
@@ -192,7 +184,7 @@ class DDASection:
             dda_algorithm = self.dda_algorithm_dropdown.get_selected_value()
             
         # Update the configuration with the selected algorithm
-        config_values["dda_algorithm"] = dda_algorithm or "ThresholdDDA"
+        config_values["dda_algorithm"] = dda_algorithm or "MetricsDDA"
         
         return config_values
     

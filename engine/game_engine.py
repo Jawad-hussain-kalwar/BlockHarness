@@ -51,15 +51,21 @@ class GameEngine:
         
         # Create and initialize DDA algorithm
         try:
-            dda_name = self.config.get("dda_algorithm", "ThresholdDDA")
+            dda_name = self.config.get("dda_algorithm", "MetricsDDA")
             self.dda_algorithm = dda_registry.create_algorithm(dda_name)
             dda_params = self.config.get("dda_params", {})
             self.dda_algorithm.initialize(dda_params)
         except Exception as e:
-            print(f"Error initializing DDA algorithm: {e}, using fallback ThresholdDDA")
-            # Fallback to ThresholdDDA
-            self.dda_algorithm = dda_registry.create_algorithm("ThresholdDDA")
-            self.dda_algorithm.initialize({})
+            print(f"Error initializing DDA algorithm: '{dda_name}', using fallback MetricsDDA")
+            # Fallback to MetricsDDA
+            try:
+                self.dda_algorithm = dda_registry.create_algorithm("MetricsDDA")
+                self.dda_algorithm.initialize({})
+            except Exception as fallback_error:
+                print(f"Error initializing fallback DDA algorithm: {fallback_error}, using OpportunityDDA")
+                # Try OpportunityDDA as last resort
+                self.dda_algorithm = dda_registry.create_algorithm("OpportunityDDA")
+                self.dda_algorithm.initialize({})
         
         # Initialize metrics manager
         try:
