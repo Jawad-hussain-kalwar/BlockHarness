@@ -57,6 +57,12 @@ DEFAULT_WEIGHTS =[1,    # Single cell Square
    2,    # 2x2 back diagonal
 ]
 
+SIMULATION_CONFIG = {
+    "default_player": "Greedy",
+    "steps_per_second": 0, # max possible or infinite
+    "number_of_runs": 10
+}
+
 # Default configuration
 CONFIG = {
     "shapes": SHAPES,

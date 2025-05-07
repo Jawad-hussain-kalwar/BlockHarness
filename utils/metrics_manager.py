@@ -1,5 +1,5 @@
 # utils/metrics_manager.py
-from typing import Dict, List, Set, Tuple, Optional, Deque
+from typing import Dict, List, Set, Tuple, Optional
 from collections import deque
 import time
 from engine.board import Board
