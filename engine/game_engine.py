@@ -32,13 +32,10 @@ class GameEngine:
         # Initialize metrics manager
         try:
             self.metrics_manager = MetricsManager(config)
-            # Start timing for the first move
-            self.metrics_manager.start_move_timer()
         except Exception as e:
             print(f"[engine/game_engine.py] Error initializing MetricsManager: {e}")
             # Continue without full metrics tracking if something fails
             self.metrics_manager = MetricsManager({})
-            self.metrics_manager.start_move_timer()
 
         # Initialize block pool with configuration
         try:
@@ -170,8 +167,6 @@ class GameEngine:
         
         # Check if can place
         if not self.board.can_place(block, row, col):
-            # Record a placement mistake
-            self.metrics_manager.record_mistake()
             return False
             
         # Place the block
@@ -205,7 +200,6 @@ class GameEngine:
             self.score += 1
             
         # Update metrics for move completion
-        self.metrics_manager.record_move_completion(line_count)
         self.metrics_manager.score = self.score
         
         
@@ -272,7 +266,9 @@ class GameEngine:
         """Fill the preview with blocks up to the target count."""
         # Determine how many blocks to generate
         num_to_generate = max(0, target_count - len(self._preview_blocks))
-        
+        # Update game state metrics (every frame)
+        self.metrics_manager.update_block_metrics(self.board)
+                                                  
         if num_to_generate <= 0:
             return  # Preview already has enough blocks
             

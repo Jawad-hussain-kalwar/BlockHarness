@@ -72,7 +72,7 @@ CONFIG = {
             "low_clear_rate":       0.5,                   # Threshold for L=1
             "high_clear_rate":      0.8,                  # Threshold for L=3
             "n_best_fit_blocks":    1,                      # Number of best fit blocks to preview out of 3
-            "score_threshold":      100,                  # Score threshold for game-over opportunity
+            "score_threshold":      99999,                  # Score threshold for game-over opportunity
             "n_game_over_blocks":   1                  # Number of best fit blocks to preview out of 3
         }
     },
@@ -100,6 +100,7 @@ CONFIG = {
     "viewable_metrics": {
         # Game Analysis Metrics
         "best_fit_block": True,
+        "best_fit_position": True,
         "opportunity": True,
         "game_over_block": True,
         

@@ -37,8 +37,10 @@ class StateSection:
                 "title": "Game Analysis",
                 "metrics": [
                     "best_fit_block",
+                    "best_fit_position",
+                    "clearable_lines",
                     "opportunity",
-                    "game_over_block"
+                    "num_game_over_blocks"
                 ]
             },
             {
@@ -87,8 +89,10 @@ class StateSection:
         # Labels for metrics (prettier display names)
         self.metric_labels = {
             "best_fit_block": "Best Fit Block",
-            "opportunity": "Game End Opportunity",
-            "game_over_block": "Game Over Block",
+            "best_fit_position": "Best Fit Position",
+            "clearable_lines": "Clearable Lines",
+            "opportunity": "Opportunity",
+            "num_game_over_blocks": "Game Over Blocks",
             "imminent_threat": "Imminent Threat",
             "occupancy_ratio": "Occupancy Ratio",
             "fragmentation_count": "Fragmentation Count",

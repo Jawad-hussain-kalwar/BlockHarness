@@ -104,7 +104,13 @@ class BlockPool:
         # Extract metrics
         best_fit_block = metrics.get("best_fit_block", "None")
         opportunity = metrics.get("opportunity", False)
-        game_over_block = metrics.get("game_over_block", "None")
+        game_over_blocks = metrics.get("game_over_blocks", ["None"])
+        # If game_over_blocks doesn't exist in metrics (backward compatibility), use game_over_block
+        if "None" in game_over_blocks and game_over_blocks == ["None"]:
+            single_block = metrics.get("game_over_block", "None")
+            if single_block != "None":
+                game_over_blocks = [single_block]
+                
         score = metrics.get("score", 0)
         clear_rate = metrics.get("clear_rate", 0.0)
         
@@ -115,9 +121,9 @@ class BlockPool:
         blocks = []
         
         if score < self.score_threshold:
-            blocks = self._generate_blocks_below_threshold(best_fit_block, count, clear_rate)
+            blocks = self._generate_blocks_below_threshold(best_fit_block, count, clear_rate, game_over_blocks)
         else:
-            blocks = self._generate_blocks_above_threshold(game_over_block, opportunity, count)
+            blocks = self._generate_blocks_above_threshold(game_over_blocks, opportunity, count)
         
         # Store generated block names for future reference
         self.last_generated_blocks = [b.get_shape_name() for b in blocks if hasattr(b, 'get_shape_name')]
@@ -137,18 +143,24 @@ class BlockPool:
         else:
             self.L = 1
     
-    def _generate_blocks_below_threshold(self, best_fit_block: str, count: int, clear_rate: float) -> List[Block]:
+    def _generate_blocks_below_threshold(self, best_fit_block: str, count: int, clear_rate: float, 
+                                       game_over_blocks: List[str] = None) -> List[Block]:
         """Generate blocks when score is below threshold.
         
         Args:
             best_fit_block: Name of the best fit block
             count: Number of blocks to generate
             clear_rate: Current line clear rate
+            game_over_blocks: List of blocks that would cause game over
             
         Returns:
             List[Block]: Generated blocks
         """
         blocks = []
+        game_over_blocks = game_over_blocks or ["None"]
+        
+        # Filter out "None" from game_over_blocks
+        excluded_shapes = [block for block in game_over_blocks if block != "None"]
         
         if clear_rate < self.low_clear_rate:
             # Low clear rate: Generate n best fit blocks and random blocks
@@ -158,12 +170,13 @@ class BlockPool:
                     blocks.append(Block(self.shapes[best_fit_block]))
                 
                 # Add random blocks to complete the count
-                excluded_shapes = [best_fit_block]
+                if best_fit_block not in excluded_shapes:
+                    excluded_shapes.append(best_fit_block)
                 random_blocks = self._select_distinct_blocks(count - len(blocks), excluded_shapes)
                 blocks.extend(random_blocks)
             else:
                 # If no best fit block, generate all random blocks
-                blocks = self._select_distinct_blocks(count)
+                blocks = self._select_distinct_blocks(count, excluded_shapes)
                 
         elif clear_rate < self.high_clear_rate:
             # Medium clear rate: Every 2nd tray has best fit blocks
@@ -173,12 +186,13 @@ class BlockPool:
                     blocks.append(Block(self.shapes[best_fit_block]))
                 
                 # Add random blocks to complete the count
-                excluded_shapes = [best_fit_block]
+                if best_fit_block not in excluded_shapes:
+                    excluded_shapes.append(best_fit_block)
                 random_blocks = self._select_distinct_blocks(count - len(blocks), excluded_shapes)
                 blocks.extend(random_blocks)
             else:
                 # First tray or non-best-fit tray: all random blocks
-                blocks = self._select_distinct_blocks(count)
+                blocks = self._select_distinct_blocks(count, excluded_shapes)
                 
         else:
             # High clear rate: Every 3rd tray has best fit blocks
@@ -188,22 +202,23 @@ class BlockPool:
                     blocks.append(Block(self.shapes[best_fit_block]))
                 
                 # Add random blocks to complete the count
-                excluded_shapes = [best_fit_block]
+                if best_fit_block not in excluded_shapes:
+                    excluded_shapes.append(best_fit_block)
                 random_blocks = self._select_distinct_blocks(count - len(blocks), excluded_shapes)
                 blocks.extend(random_blocks)
             else:
                 # Not a best-fit tray: all random blocks
-                blocks = self._select_distinct_blocks(count)
+                blocks = self._select_distinct_blocks(count, excluded_shapes)
         
         # Shuffle to avoid predictable patterns
         random.shuffle(blocks)
         return blocks
     
-    def _generate_blocks_above_threshold(self, game_over_block: str, opportunity: bool, count: int) -> List[Block]:
+    def _generate_blocks_above_threshold(self, game_over_blocks: List[str], opportunity: bool, count: int) -> List[Block]:
         """Generate blocks when score is above threshold.
         
         Args:
-            game_over_block: Name of the game over block
+            game_over_blocks: List of blocks that would cause game over
             opportunity: Whether there's a game over opportunity
             count: Number of blocks to generate
             
@@ -212,14 +227,20 @@ class BlockPool:
         """
         blocks = []
         
+        # Filter out "None" from game_over_blocks
+        valid_game_over_blocks = [block for block in game_over_blocks if block != "None" and block in self.shape_names]
+        
         # Generate game over blocks if opportunity exists
-        if opportunity and game_over_block != "None" and game_over_block in self.shape_names:
+        if opportunity and valid_game_over_blocks:
+            # Select a game over block (for consistency, use the first one if multiple exist)
+            game_over_block = valid_game_over_blocks[0]
+            
             # Add game over blocks
             for _ in range(min(self.n_game_over_blocks, count)):
                 blocks.append(Block(self.shapes[game_over_block]))
             
             # Add random blocks to complete the count
-            excluded_shapes = [game_over_block]
+            excluded_shapes = valid_game_over_blocks.copy()
             random_blocks = self._select_distinct_blocks(count - len(blocks), excluded_shapes)
             blocks.extend(random_blocks)
         else:
