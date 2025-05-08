@@ -57,7 +57,7 @@ class StateSection:
             {
                 "title": "Player State Metrics",
                 "metrics": [
-                    "move_count",
+                    "moves",
                     "lines_cleared",
                     "score",
                     "clear_rate",
@@ -99,7 +99,7 @@ class StateSection:
             "largest_empty_region": "Largest Empty Region",
             "danger_score": "Danger Score",
             "phase": "Game Phase",
-            "move_count": "Moves",
+            "moves": "Moves",
             "lines_cleared": "Lines Cleared",
             "score": "Score",
             "clear_rate": "Clear Rate",

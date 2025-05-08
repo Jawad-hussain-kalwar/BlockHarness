@@ -65,7 +65,7 @@ class GameEngine:
         try:
             self._refill_preview()
         except Exception as e:
-            print(f"[engine/game_engine.py] Error filling preview: {e}")
+            print(f"[engine/game_engine.py][68] Error filling preview: {e}")
             # If refill fails, initialize with empty preview
             self._preview_blocks = []
             self._selected_preview_index = None
@@ -116,6 +116,7 @@ class GameEngine:
         """
         if 0 <= index < len(self._preview_blocks):
             self._selected_preview_index = index
+            print(f"[engine/game_engine.py][286] Selected preview block at index: {index}")
             return True
         return False
     
@@ -171,6 +172,7 @@ class GameEngine:
             
         # Place the block
         self.board.place_block(block, row, col)
+        print(f"[engine/game_engine.py][175] Placed block at {row}, {col}")
         self.blocks_placed += 1
         
         # Find cells to clear and create animation
@@ -194,8 +196,6 @@ class GameEngine:
                 self.lines += line_count
                 self.metrics_manager.lines_cleared += line_count
                 self.score += self.compute_line_score(len(cells_to_clear))
-                # Immediately clear the cells
-                # print("[engine/game_engine.py][219] Immediately clearing cells - simulation mode")
                 self.board.clear_cells(cells_to_clear)
         else:
             # No lines to clear, just add 1 point for block placement
@@ -203,7 +203,9 @@ class GameEngine:
             
         # Update metrics for move completion
         self.metrics_manager.score = self.score
-        
+        self.metrics_manager.moves += 1
+        self.metrics_manager.recent_clears.append(line_count)
+        self.metrics_manager.clear_rate = (self.metrics_manager.lines_cleared / self.metrics_manager.moves) if self.metrics_manager.moves else 0.0
         
         # Remove from preview
         self._preview_blocks.pop(self._selected_preview_index)
@@ -285,9 +287,9 @@ class GameEngine:
                     self._preview_blocks,
                     self._selected_preview_index
                 )
-            
+            print(f"[engine/game_engine.py][286] Refilled preview with {len(self._preview_blocks)} blocks")
         except Exception as e:
-            print(f"[engine/game_engine.py] Error in _refill_preview: {e}")
+            print(f"[engine/game_engine.py][288] Error in _refill_preview: {e}")
             # No fallback - if we have errors, we need to know and fix the root cause
     
     def _has_valid_placement(self, block: Block) -> bool:
@@ -315,6 +317,7 @@ class GameEngine:
                 
         # No valid placements for any blocks, game over
         self._game_over = True
+        print(f"[engine/game_engine.py][316] Game over: score: {self.score}, lines: {self.lines}, blocks placed: {self.blocks_placed}")
         return True
     
     def _count_lines_from_cells(self, cells: Set[Tuple[int, int]]) -> int:

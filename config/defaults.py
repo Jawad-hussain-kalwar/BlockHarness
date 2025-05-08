@@ -113,7 +113,7 @@ CONFIG = {
         "phase": True,
         
         # Player State Metrics
-        "move_count": True,
+        "moves": True,
         "lines_cleared": True,
         "score": True,
         "clear_rate": True,

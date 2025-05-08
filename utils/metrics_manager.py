@@ -44,7 +44,7 @@ class MetricsManager:
         self.phase = "early"
 
         # Initialize player state metrics
-        self.move_count = 0
+        self.moves = 0
         self.lines_cleared = 0
         self.score = 0
         self.clear_rate = 0.0
@@ -369,9 +369,9 @@ class MetricsManager:
 
     def _update_player_level(self) -> None:
         """Update player level based on lines cleared and move count."""
-        if self.lines_cleared > 100 or self.move_count > 200:
+        if self.lines_cleared > 100 or self.moves > 200:
             self.player_level = "Expert"
-        elif self.lines_cleared > 50 or self.move_count > 100:
+        elif self.lines_cleared > 50 or self.moves > 100:
             self.player_level = "Intermediate"
         else:
             self.player_level = "Novice"
@@ -387,9 +387,9 @@ class MetricsManager:
 
     def _update_phase(self) -> None:
         """Update game phase based on occupancy and move count."""
-        if self.occupancy_ratio > 0.6 or self.move_count > 50:
+        if self.occupancy_ratio > 0.6 or self.moves > 50:
             self.phase = "late"
-        elif self.occupancy_ratio > 0.3 or self.move_count > 20:
+        elif self.occupancy_ratio > 0.3 or self.moves > 20:
             self.phase = "mid"
         else:
             self.phase = "early"
@@ -430,7 +430,7 @@ class MetricsManager:
             "danger_score": self.danger_score,
             "phase": self.phase,
             # Player State Metrics
-            "move_count": self.move_count,
+            "moves": self.moves,
             "lines_cleared": self.lines_cleared,
             "score": self.score,
             "clear_rate": self.clear_rate,
