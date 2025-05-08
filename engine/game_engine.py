@@ -5,7 +5,6 @@ from engine.board import Board
 from engine.block_pool import BlockPool
 from engine.block import Block
 from ui.animation import AnimationManager, FadeoutAnimation
-from utils.metrics_manager import MetricsManager
 from config.defaults import DEFAULT_WEIGHTS, SHAPES
 
 
@@ -29,14 +28,6 @@ class GameEngine:
         self.blocks_placed = 0
         self._game_over = False
 
-        # Initialize metrics manager
-        try:
-            self.metrics_manager = MetricsManager(config)
-        except Exception as e:
-            print(f"[engine/game_engine.py] Error initializing MetricsManager: {e}")
-            # Continue without full metrics tracking if something fails
-            self.metrics_manager = MetricsManager({})
-
         # Initialize block pool with configuration
         try:
             self.pool = BlockPool(
@@ -54,8 +45,8 @@ class GameEngine:
         self._current_block = None
         
         # Preview management
-        self._preview_blocks = []  # List of blocks (no rotation)
-        self._selected_preview_index = None
+        self._preview_blocks: List[Block] = []  # preview blocks list
+        self._selected_preview_index: Optional[int] = None  # index of selected preview block
         
         # Animation management
         self.animation_manager = AnimationManager()
@@ -98,12 +89,11 @@ class GameEngine:
         return self._selected_preview_index
     
     def get_metrics(self) -> Dict:
-        """Get all current metrics.
-        
-        Returns:
-            Dict: All current metrics data
-        """
-        return self.metrics_manager.get_all_metrics()
+        """Get minimal metrics for DDA block generation."""
+        return {
+            "score": self.score,
+            "clear_rate": (self.lines / self.blocks_placed) if self.blocks_placed else 0.0
+        }
     
     def select_preview_block(self, index: int) -> bool:
         """Select a block from the preview by index.
@@ -188,25 +178,17 @@ class GameEngine:
                 )
                 # Update lines count (count of lines cleared)
                 self.lines += line_count
-                self.metrics_manager.lines_cleared += line_count
                 # Update score based on number of cells cleared
                 self.score += self.compute_line_score(len(cells_to_clear))
             else:
                 # Skip animation when duration is 0 (simulation mode)
                 self.lines += line_count
-                self.metrics_manager.lines_cleared += line_count
                 self.score += self.compute_line_score(len(cells_to_clear))
                 self.board.clear_cells(cells_to_clear)
         else:
             # No lines to clear, just add 1 point for block placement
             self.score += len(block.cells)
             
-        # Update metrics for move completion
-        self.metrics_manager.score = self.score
-        self.metrics_manager.moves += 1
-        self.metrics_manager.recent_clears.append(line_count)
-        self.metrics_manager.clear_rate = (self.metrics_manager.lines_cleared / self.metrics_manager.moves) if self.metrics_manager.moves else 0.0
-        
         # Remove from preview
         self._preview_blocks.pop(self._selected_preview_index)
         
@@ -232,9 +214,6 @@ class GameEngine:
                 
                 # Check for game over after cells are cleared
                 self._check_game_over()
-        
-        # Update game state metrics (every frame)
-        self.metrics_manager.update_game_state_metrics(self.board, self._preview_blocks)
     
     def is_animating(self) -> bool:
         """Check if any animations are currently running."""
@@ -266,8 +245,7 @@ class GameEngine:
 
     def _refill_preview(self):
         """Fill the preview with blocks up to the target count."""
-        # Update game state metrics (every frame)
-        self.metrics_manager.update_block_metrics(self.board)
+        # Metrics manager removed; block metrics updated within block pool
             
         try:
             # Get blocks directly from the enhanced BlockPool
@@ -280,13 +258,7 @@ class GameEngine:
             if self._selected_preview_index is None and self._preview_blocks:
                 self._selected_preview_index = 0
                 
-            # Check if MetricsManager has update_preview_blocks method before calling
-            if hasattr(self.metrics_manager, 'update_preview_blocks'):
-                self.metrics_manager.update_preview_blocks(
-                    self.board,
-                    self._preview_blocks,
-                    self._selected_preview_index
-                )
+            # Metrics manager removed; preview metrics not tracked
             print(f"[engine/game_engine.py][286] Refilled preview with {len(self._preview_blocks)} blocks")
         except Exception as e:
             print(f"[engine/game_engine.py][288] Error in _refill_preview: {e}")

@@ -1,5 +1,5 @@
 # play.py
-from controllers.simulation_controller import SimulationController
+from engine.game_controller import GameController
 
 import argparse
 import json
@@ -26,8 +26,8 @@ def main():
     # Parse command line arguments and get config
     args, config = parse_args()
         
-    # Create the simulation controller (which extends game controller)
-    controller = SimulationController(config)
+    # Create the game controller
+    controller = GameController(config)
     
     # Start the game loop
     controller.loop()

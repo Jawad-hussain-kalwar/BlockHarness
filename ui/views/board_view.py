@@ -1,9 +1,8 @@
 # ui/views/board_view.py
 import pygame
-from typing import Optional, Tuple
-from ui.colours import FG_COLOR, BOARD_LINES, BLUE, CELL_BORDER
+from typing import Tuple
+from ui.colours import BOARD_LINES, BLUE, CELL_BORDER
 from ui.layout import BOARD_SIZE
-from ui.debug import draw_debug_rect
 
 class BoardView:
     def __init__(self, board_origin, cell_size, board_size=BOARD_SIZE):
@@ -18,12 +17,9 @@ class BoardView:
             self.board_cells * cell_size
         )
     
-    def draw(self, surface, engine):
+    def render(self, surface, engine):
         
-        # Draw debug border if enabled
-        draw_debug_rect(surface, self.board_rect, "board")
-        
-        # Draw grid lines
+        # render grid lines
         for i in range(self.board_cells + 1):
             # Vertical lines
             pygame.draw.line(
@@ -40,7 +36,7 @@ class BoardView:
                 (self.board_origin[0] + self.board_cells * self.cell_size, self.board_origin[1] + i * self.cell_size)
             )
         
-        # Draw filled cells with support for animations
+        # render filled cells with support for animations
         for r in range(self.board_cells):
             for c in range(self.board_cells):
                 if engine.board.grid[r][c]:
@@ -54,20 +50,20 @@ class BoardView:
                         self.cell_size
                     )
                     
-                    # Draw with opacity if the cell is being animated
+                    # render with opacity if the cell is being animated
                     if opacity is not None:
-                        self._draw_cell_with_opacity(surface, cell_rect, BLUE, opacity)
+                        self._render_cell_with_opacity(surface, cell_rect, BLUE, opacity)
                     else:
-                        # Draw normal cell
+                        # render normal cell
                         pygame.draw.rect(surface, BLUE, cell_rect)
                         pygame.draw.rect(surface, CELL_BORDER, cell_rect, 1)
                     
-    def _draw_cell_with_opacity(self, surface: pygame.Surface, rect: pygame.Rect, 
+    def _render_cell_with_opacity(self, surface: pygame.Surface, rect: pygame.Rect, 
                                color: Tuple[int, int, int], opacity: float) -> None:
-        """Draw a cell with the specified opacity.
+        """render a cell with the specified opacity.
         
         Args:
-            surface: Surface to draw on
+            surface: Surface to render on
             rect: Rectangle to fill
             color: RGB color tuple
             opacity: Opacity value from 0.0 to 1.0
@@ -79,7 +75,7 @@ class BoardView:
         opacity_int = max(0, min(255, int(opacity * 255)))
         transparent_color = (*color, opacity_int)  # RGBA
         
-        # Fill the temporary surface and draw border
+        # Fill the temporary surface and render border
         cell_surface.fill(transparent_color)
         pygame.draw.rect(cell_surface, (*CELL_BORDER, opacity_int), 
                         pygame.Rect(0, 0, rect.width, rect.height), 1)

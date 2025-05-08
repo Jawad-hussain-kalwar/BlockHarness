@@ -2,7 +2,6 @@
 import pygame
 from ui.colours import FG_COLOR, TEXT_SECONDARY, STAT_BOX_BG, STAT_BOX_BORDER
 from ui.layout import PADDING, STATS_HEIGHT, STATS_BOX_WIDTH, STATS_BOX_HEIGHT, HINTS_HEIGHT, HINTS_PADDING
-from ui.debug import draw_debug_rect
 
 class HudView:
     def __init__(self, parent_rect, stats_height, font):
@@ -16,12 +15,11 @@ class HudView:
             box_y = parent_rect.y + PADDING
             self.stat_boxes.append(pygame.Rect(box_x, box_y, STATS_BOX_WIDTH, STATS_BOX_HEIGHT))
     
-    def draw(self, surface, engine):
-        # Draw score box
+    def render(self, surface, engine):
+        # render score box
         score_box = self.stat_boxes[0]
         pygame.draw.rect(surface, STAT_BOX_BG, score_box)
         pygame.draw.rect(surface, STAT_BOX_BORDER, score_box, 1)
-        draw_debug_rect(surface, score_box, "stats")
         score_text = self.font.render("SCORE", True, FG_COLOR)
         score_value = self.font.render(f"{engine.score}", True, FG_COLOR)
         
@@ -35,11 +33,10 @@ class HudView:
             score_box.y + score_box.height - score_value.get_height() - 10
         ))
         
-        # Draw lines box
+        # render lines box
         lines_box = self.stat_boxes[1]
         pygame.draw.rect(surface, STAT_BOX_BG, lines_box)
         pygame.draw.rect(surface, STAT_BOX_BORDER, lines_box, 1)
-        draw_debug_rect(surface, lines_box, "stats")
         lines_text = self.font.render("LINES", True, FG_COLOR)
         lines_value = self.font.render(f"{engine.lines}", True, FG_COLOR)
         
@@ -52,11 +49,10 @@ class HudView:
             lines_box.y + lines_box.height - lines_value.get_height() - 10
         ))
         
-        # Draw blocks box
+        # render blocks box
         blocks_box = self.stat_boxes[2]
         pygame.draw.rect(surface, STAT_BOX_BG, blocks_box)
         pygame.draw.rect(surface, STAT_BOX_BORDER, blocks_box, 1)
-        draw_debug_rect(surface, blocks_box, "stats")
         blocks_text = self.font.render("BLOCKS", True, FG_COLOR)
         blocks_value = self.font.render(f"{engine.blocks_placed}", True, FG_COLOR)
         
@@ -69,17 +65,20 @@ class HudView:
             blocks_box.y + blocks_box.height - blocks_value.get_height() - 10
         ))
         
-        # Draw hint text
+        # render hint text
         hint_y = self.parent_rect.y + STATS_HEIGHT + (HINTS_HEIGHT - self.font.get_height()) // 2
         hint1 = self.font.render("Click preview to select", True, TEXT_SECONDARY)
-        hint2 = self.font.render("Esc = quit", True, TEXT_SECONDARY)
+        hint2 = self.font.render("S = settings", True, TEXT_SECONDARY)
+        hint3 = self.font.render("Esc = quit", True, TEXT_SECONDARY)
         
         hint1_width = hint1.get_width()
         hint2_width = hint2.get_width()
+        hint3_width = hint3.get_width()
         
         # Calculate positions to evenly space the hints
-        total_width = hint1_width + hint2_width
-        spacing = (self.parent_rect.width - total_width) / 3
+        total_width = hint1_width + hint2_width + hint3_width
+        spacing = (self.parent_rect.width - total_width) / 4
         
         surface.blit(hint1, (self.parent_rect.x + spacing, hint_y))
-        surface.blit(hint2, (self.parent_rect.x + 2 * spacing + hint1_width, hint_y)) 
+        surface.blit(hint2, (self.parent_rect.x + 2 * spacing + hint1_width, hint_y))
+        surface.blit(hint3, (self.parent_rect.x + 3 * spacing + hint1_width + hint2_width, hint_y)) 

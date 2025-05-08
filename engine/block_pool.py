@@ -1,6 +1,6 @@
 # engine/block_pool.py
 import random
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple, Any, Optional
 from engine.block import Block
 
 
@@ -23,7 +23,7 @@ class BlockPool:
         # Initialize DDA-related attributes
         self.tray_counter = 0  # Counter to keep track of tray refills
         self.L = 1  # Frequency of best-fit block generation (1-3)
-        self.last_generated_blocks = []  # Keep track of recently generated blocks
+        self.last_generated_blocks: List[str] = []  # Keep track of recently generated blocks
         
         # Load configuration
         self._load_config(self.config)
@@ -53,24 +53,24 @@ class BlockPool:
         self.n_best_fit_blocks = dda_config.get("n_best_fit_blocks", 1)
         self.n_game_over_blocks = dda_config.get("n_game_over_blocks", 1)
 
-    def get_block(self) -> Block:
-        """Sample a random block based on shape weights.
+    # def get_block(self) -> Block:
+    #     """Sample a random block based on shape weights.
         
-        Returns:
-            Block: A new block with randomly selected shape
-        """
-        if not self.shape_names:
-            raise ValueError("[engine/block_pool.py] No shapes available in the block pool")
+    #     Returns:
+    #         Block: A new block with randomly selected shape
+    #     """
+    #     if not self.shape_names:
+    #         raise ValueError("[engine/block_pool.py] No shapes available in the block pool")
             
-        try:
-            shape_name = random.choices(self.shape_names, weights=self.weights, k=1)[0]
-        except (ValueError, KeyError) as e:
-            # Fallback to uniform selection if weights cause an error
-            print(f"[engine/block_pool.py] Warning: Error in weighted selection ({e}), falling back to uniform selection")
-            shape_name = random.choice(self.shape_names)
+    #     try:
+    #         shape_name = random.choices(self.shape_names, weights=self.weights, k=1)[0]
+    #     except (ValueError, KeyError) as e:
+    #         # Fallback to uniform selection if weights cause an error
+    #         print(f"[engine/block_pool.py] Warning: Error in weighted selection ({e}), falling back to uniform selection")
+    #         shape_name = random.choice(self.shape_names)
             
-        shape = self.shapes[shape_name]
-        return Block(shape)
+    #     shape = self.shapes[shape_name]
+    #     return Block(shape)
 
     def get_next_blocks(self, engine_state, count=3) -> List[Block]:
         """Get the next blocks based on the game state and difficulty adjustment.
@@ -143,8 +143,61 @@ class BlockPool:
         else:
             self.L = 1
     
+    def _filter_blocks_below_threshold(self, best_fit_block: str, game_over_blocks: List[str]) -> List[str]:
+        """Filter out blocks that should be excluded from random selection.
+        
+        Args:
+            best_fit_block: Name of the best fit block
+            game_over_blocks: List of blocks that would cause game over
+            
+        Returns:
+            List[str]: List of shape names to exclude from random selection
+        """
+        # Filter out "None" from game_over_blocks
+        excluded_shapes = [block for block in game_over_blocks if block != "None"]
+        
+        # Add best fit block to excluded shapes if it exists and isn't already excluded
+        if best_fit_block != "None" and best_fit_block in self.shape_names and best_fit_block not in excluded_shapes:
+            excluded_shapes.append(best_fit_block)
+            
+        return excluded_shapes
+    
+    def _instantiate_block(self, shape_name: str) -> Block:
+        """Create a Block instance from a shape name.
+        
+        Args:
+            shape_name: Name of the shape to create
+            
+        Returns:
+            Block: New Block instance
+        """
+        return Block(self.shapes[shape_name])
+    
+    def _should_add_best_fit_blocks(self, clear_rate: float, best_fit_block: str) -> bool:
+        """Determine if best fit blocks should be added based on clear rate and tray counter.
+        
+        Args:
+            clear_rate: Current line clear rate
+            best_fit_block: Name of the best fit block
+            
+        Returns:
+            bool: True if best fit blocks should be added
+        """
+        if best_fit_block == "None" or best_fit_block not in self.shape_names:
+            return False
+            
+        if clear_rate < self.low_clear_rate:
+            # Always add for low clear rate
+            return True
+        elif clear_rate < self.high_clear_rate:
+            # Every 2nd tray for medium clear rate
+            return self.tray_counter % 2 == 0
+        else:
+            # Every 3rd tray for high clear rate
+            return self.tray_counter % 3 == 0
+    
     def _generate_blocks_below_threshold(self, best_fit_block: str, count: int, clear_rate: float, 
-                                       game_over_blocks: List[str] = None) -> List[Block]:
+                                       game_over_blocks: Optional[List[str]] = None) -> List[Block]:
         """Generate blocks when score is below threshold.
         
         Args:
@@ -159,56 +212,24 @@ class BlockPool:
         blocks = []
         game_over_blocks = game_over_blocks or ["None"]
         
-        # Filter out "None" from game_over_blocks
-        excluded_shapes = [block for block in game_over_blocks if block != "None"]
-        
-        if clear_rate < self.low_clear_rate:
-            # Low clear rate: Generate n best fit blocks and random blocks
-            if best_fit_block != "None" and best_fit_block in self.shape_names:
-                # Add best fit blocks
-                for _ in range(min(self.n_best_fit_blocks, count)):
-                    blocks.append(Block(self.shapes[best_fit_block]))
-                
-                # Add random blocks to complete the count
-                if best_fit_block not in excluded_shapes:
-                    excluded_shapes.append(best_fit_block)
-                random_blocks = self._select_distinct_blocks(count - len(blocks), excluded_shapes)
-                blocks.extend(random_blocks)
-            else:
-                # If no best fit block, generate all random blocks
-                blocks = self._select_distinct_blocks(count, excluded_shapes)
-                
-        elif clear_rate < self.high_clear_rate:
-            # Medium clear rate: Every 2nd tray has best fit blocks
-            if self.tray_counter % 2 == 0 and best_fit_block != "None" and best_fit_block in self.shape_names:
-                # Add best fit blocks
-                for _ in range(min(self.n_best_fit_blocks, count)):
-                    blocks.append(Block(self.shapes[best_fit_block]))
-                
-                # Add random blocks to complete the count
-                if best_fit_block not in excluded_shapes:
-                    excluded_shapes.append(best_fit_block)
-                random_blocks = self._select_distinct_blocks(count - len(blocks), excluded_shapes)
-                blocks.extend(random_blocks)
-            else:
-                # First tray or non-best-fit tray: all random blocks
-                blocks = self._select_distinct_blocks(count, excluded_shapes)
-                
+        # Check if we should add best fit blocks based on clear rate and tray counter
+        if self._should_add_best_fit_blocks(clear_rate, best_fit_block):
+            # Add best fit blocks
+            best_fit_count = min(self.n_best_fit_blocks, count)
+            blocks.extend([self._instantiate_block(best_fit_block) for _ in range(best_fit_count)])
+            
+            # Get excluded shapes for random block selection
+            excluded_shapes = self._filter_blocks_below_threshold(best_fit_block, game_over_blocks)
+            
+            # Add random blocks to complete the count
+            random_blocks = self._select_distinct_blocks(count - len(blocks), excluded_shapes)
+            blocks.extend(random_blocks)
         else:
-            # High clear rate: Every 3rd tray has best fit blocks
-            if self.tray_counter % 3 == 0 and best_fit_block != "None" and best_fit_block in self.shape_names:
-                # Add best fit blocks
-                for _ in range(min(self.n_best_fit_blocks, count)):
-                    blocks.append(Block(self.shapes[best_fit_block]))
-                
-                # Add random blocks to complete the count
-                if best_fit_block not in excluded_shapes:
-                    excluded_shapes.append(best_fit_block)
-                random_blocks = self._select_distinct_blocks(count - len(blocks), excluded_shapes)
-                blocks.extend(random_blocks)
-            else:
-                # Not a best-fit tray: all random blocks
-                blocks = self._select_distinct_blocks(count, excluded_shapes)
+            # Get excluded shapes (just game over blocks in this case)
+            excluded_shapes = [block for block in game_over_blocks if block != "None"]
+            
+            # Generate all random blocks
+            blocks = self._select_distinct_blocks(count, excluded_shapes)
         
         # Shuffle to avoid predictable patterns
         random.shuffle(blocks)
@@ -251,7 +272,7 @@ class BlockPool:
         random.shuffle(blocks)
         return blocks
     
-    def _select_distinct_blocks(self, count: int, excluded_shapes: List[str] = None) -> List[Block]:
+    def _select_distinct_blocks(self, count: int, excluded_shapes: Optional[List[str]] = None) -> List[Block]:
         """Select distinct blocks with optional exclusions.
         
         Args:
@@ -264,30 +285,29 @@ class BlockPool:
         if excluded_shapes is None:
             excluded_shapes = []
         
-        # Get all available shapes, excluding the specified ones
-        available_shapes = [s for s in self.shape_names if s not in excluded_shapes]
+        # Create a set of excluded shapes for faster lookups
+        excluded_set = set(excluded_shapes)
+        recent_set = set(self.last_generated_blocks)
         
-        # Also exclude recently generated blocks to increase variety
-        available_shapes = [s for s in available_shapes if s not in self.last_generated_blocks]
+        # First try excluding both excluded_shapes and recently generated blocks
+        available_shapes = [s for s in self.shape_names if s not in excluded_set and s not in recent_set]
         
-        # If too many exclusions, fall back to all shapes except excluded ones
+        # If we don't have enough shapes, try only excluding the explicit exclusions
         if len(available_shapes) < count:
-            available_shapes = [s for s in self.shape_names if s not in excluded_shapes]
+            available_shapes = [s for s in self.shape_names if s not in excluded_set]
         
-        # If still not enough shapes, just use what we have with potential duplicates
+        # If we still don't have enough shapes, we'll have to allow duplicates
         if len(available_shapes) < count:
-            selected_blocks = []
-            for _ in range(count):
-                if available_shapes:
-                    shape_name = random.choice(available_shapes)
-                    selected_blocks.append(Block(self.shapes[shape_name]))
-                else:
-                    # Ultimate fallback: use any shape
-                    shape_name = random.choice(self.shape_names)
-                    selected_blocks.append(Block(self.shapes[shape_name]))
+            # Use random.choices which allows duplicates
+            if available_shapes:
+                # We have some available shapes but not enough for count distinct ones
+                selected_shape_names = random.choices(available_shapes, k=count)
+            else:
+                # Ultimate fallback: no shapes available after exclusions, use any shape
+                selected_shape_names = random.choices(self.shape_names, k=count)
         else:
-            # Enough distinct shapes available
+            # We have enough shapes for random.sample (which guarantees distinctness)
             selected_shape_names = random.sample(available_shapes, count)
-            selected_blocks = [Block(self.shapes[name]) for name in selected_shape_names]
         
-        return selected_blocks
+        # Create blocks from the selected shape names
+        return [self._instantiate_block(name) for name in selected_shape_names]

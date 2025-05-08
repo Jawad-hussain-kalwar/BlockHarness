@@ -90,36 +90,5 @@ CONFIG = {
         "high_clear": 0.70,                                       # threshold for "Easy" difficulty
         "danger_cut": 0.80,                                       # threshold for danger warning
     },
-    # timing parameters:
-    "metrics_timing": {
-        "max_time_per_move": 8.0,                                 # seconds
-    },
 
-
-    # Configuration for which metrics are displayed in the state section
-    "viewable_metrics": {
-        # Game Analysis Metrics
-        "best_fit_block": True,
-        "best_fit_position": True,
-        "opportunity": True,
-        "game_over_block": True,
-        
-        # Game State Metrics
-        "imminent_threat": True,
-        "occupancy_ratio": True,
-        "fragmentation_count": True,
-        "largest_empty_region": True,
-        "danger_score": False,
-        "phase": True,
-        
-        # Player State Metrics
-        "moves": True,
-        "lines_cleared": True,
-        "score": True,
-        "clear_rate": True,
-        "recent_clears": True,  # History of recent line clears
-        "perf_band": False,
-        "player_level": False,
-        "emotional_state": False
     }
-} 

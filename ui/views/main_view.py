@@ -1,126 +1,132 @@
 # ui/views/main_view.py
 import pygame
-from ui.colours import BG_COLOR
-from ui.layout import SIDEBAR_WIDTH, SIDEBAR_PADDING, BORDER_RADIUS, SECTION_WIDTH
+from ui.colours import BG_COLOR, FG_COLOR
 from ui.font_manager import font_manager
-
-from ui.views.dda_section import DDASection
-from ui.views.simulation_section import SimulationSection
+from ui.layout import GAME_WIDTH, WINDOW_HEIGHT, WINDOW_WIDTH, BORDER_RADIUS
 from ui.views.game_section import GameSection
-from ui.views.state_section import StateSection
+from ui.views.settings_popup import SettingsPopup
+from typing import Optional, Dict, Any, Tuple
 
 class MainView:
-    """Main view that orchestrates all UI sections."""
-    
-    def __init__(self, window_size):
-        self.window_size = window_size
-        
-        # Initialize fonts
+    """Main view displaying only the game and a settings popup."""
+    def __init__(self):
+        # Fixed window size
+        self.window_size = (WINDOW_WIDTH, WINDOW_HEIGHT)
+        # Fonts
         self.font = font_manager.get_font('Ubuntu-Regular', 18)
-        self.large_font = font_manager.get_font('Ubuntu-Regular', 36)
         self.small_font = font_manager.get_font('Ubuntu-Regular', 14)
-        
-        # Initialize section components
-        self.create_sections()
-    
-    def create_sections(self):
-        # Left section for DDA (left side of sidebar)
-        left_x = SIDEBAR_PADDING
-        top_y = SIDEBAR_PADDING
-        self.dda_section = DDASection(left_x, top_y, SECTION_WIDTH, self.font, self.small_font)
-        
-        # Right section for Simulation controls (right side of sidebar)
-        right_x = SIDEBAR_PADDING * 2 + SECTION_WIDTH
-        self.simulation_section = SimulationSection(right_x, top_y, SECTION_WIDTH, self.font, self.small_font)
-        
-        # Game section (board, preview, HUD)
-        self.game_section = GameSection(self.window_size, self.font, self.small_font)
-        
-        # State section (right sidebar)
-        self.state_section = StateSection(self.window_size, self.font, self.small_font)
-    
-    def handle_resize(self, new_size):
-        """Handle window resize events."""
-        self.window_size = new_size
-        self.create_sections()
-        return self
-    
+        # Sections
+        self.game_section = GameSection(self.font, self.small_font)
+        self.settings_popup = SettingsPopup(self.font, self.small_font)
+
     def update_config_fields(self, config):
-        """Update DDA section input fields from config."""
-        self.dda_section.update_config_fields(config)
-    
-    def update_ai_player_dropdown(self, ai_players):
-        """Update the AI player dropdown with available AI players."""
-        self.simulation_section.update_ai_player_dropdown(ai_players)
-    
-    def draw(self, surface, engine, simulation_running=False, current_run=0, simulation_runs=0, simulation_over=False, simulation_stats=None):
-        """Draw all UI sections."""
-        # Clear the screen
+        # Update settings popup fields with DDA config values
+        dda_params = config.get('dda_params', {}).get('dda', {})
+        if dda_params:
+            self.settings_popup.input_fields["low_rate"].value = str(dda_params.get('low_clear_rate', 0.5))
+            self.settings_popup.input_fields["high_rate"].value = str(dda_params.get('high_clear_rate', 0.8)) 
+            self.settings_popup.input_fields["threshold"].value = str(dda_params.get('score_threshold', 99999))
+            self.settings_popup.input_fields["block_count"].value = str(dda_params.get('n_best_fit_blocks', 1))
+
+    def get_config_values(self):
+        return self.settings_popup.get_values()
+
+    def render(self, surface, engine, show_settings):
+        # Clear screen
         surface.fill(BG_COLOR)
+        # render game section
+        self.game_section.render(surface, engine)
         
-        # Draw individual sections
-        self.dda_section.draw(surface)
-        self.simulation_section.draw(surface, simulation_running, current_run, simulation_runs)
-        self.game_section.draw(surface, engine, simulation_over, simulation_stats)
-        self.state_section.draw(surface, engine)
+        # render settings popup if active
+        if show_settings:
+            self.settings_popup.render(surface)
     
-    def handle_event(self, event):
-        """Handle UI-specific events for all sections.
+    def _handle_settings_events(self, event):
+        """Handle events when settings popup is active.
         
+        Args:
+            event: Pygame event to handle
+            
         Returns:
-            dict: Action and parameters if action needed, or None if no action
+            Optional[Dict]: Action dictionary or None
         """
-        # Handle state section events (like scrolling)
-        if self.state_section.handle_event(event):
-            return None
+        return self.settings_popup.handle_event(event)
+    
+    def _handle_preview_click(self, event):
+        """Handle clicks on the preview area.
         
-        # Handle DDA section events
-        dda_action = self.dda_section.handle_event(event)
-        if dda_action:
-            return {"action": dda_action}
-        
-        # Handle simulation section events
-        sim_action = self.simulation_section.handle_event(event)
-        if sim_action:
-            return {"action": sim_action}
-        
-        # Handle game events
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            x, y = event.pos
+        Args:
+            event: Pygame mouse event
             
-            # Check if restart button was clicked
-            if self.is_restart_button_clicked((x, y)):
-                return {"action": "restart"}
+        Returns:
+            Optional[Dict]: Action dictionary or None
+        """
+        preview_index = None
+        try:
+            preview_index = self.game_section.handle_preview_click(event.pos[0], event.pos[1])
+        except Exception:
+            preview_index = None
             
-            # Check if click is on the preview area
-            preview_index = self.handle_preview_click(x, y)
-            if preview_index is not None:
-                return {"action": "select_block", "index": preview_index}
-            
-            # Check if click is on the board area
-            grid_pos = self.handle_board_click(x, y)
-            if grid_pos:
-                return {"action": "place_block", "position": grid_pos}
-        
-        # No UI action taken
+        if preview_index is not None:
+            return {'action': 'select_block', 'index': preview_index}
         return None
     
-    def get_config_values(self):
-        """Get the current configuration values from the DDA section."""
-        return self.dda_section.get_config_values()
+    def _handle_board_click(self, event):
+        """Handle clicks on the game board.
+        
+        Args:
+            event: Pygame mouse event
+            
+        Returns:
+            Optional[Dict]: Action dictionary or None
+        """
+        grid_pos = None
+        try:
+            grid_pos = self.game_section.handle_board_click(event.pos[0], event.pos[1])
+        except Exception:
+            grid_pos = None
+            
+        if grid_pos:
+            return {'action': 'place_block', 'position': grid_pos}
+        return None
     
-    def get_simulation_values(self):
-        """Get the current simulation values from the simulation section."""
-        return self.simulation_section.get_simulation_values()
-    
-    def handle_board_click(self, x, y):
-        """Handle click on the game board."""
-        return self.game_section.handle_board_click(x, y)
-    
-    def handle_preview_click(self, x, y):
-        """Handle click on the preview area."""
-        return self.game_section.handle_preview_click(x, y)
-    
-    def is_restart_button_clicked(self, pos):
-        """Check if the restart button was clicked."""
-        return self.game_section.is_restart_button_clicked(pos) 
+    def _handle_restart_button_click(self, event, engine):
+        """Handle clicks on the restart button.
+        
+        Args:
+            event: Pygame mouse event
+            engine: Game engine instance
+            
+        Returns:
+            Optional[Dict]: Action dictionary or None
+        """
+        if engine and engine.game_over and hasattr(self.game_section, 'is_restart_button_clicked'):
+            if self.game_section.is_restart_button_clicked(event.pos):
+                return {'action': 'restart'}
+        return None
+
+    def handle_event(self, event, show_settings=False, engine=None):
+        # Handle settings popup events only if popup is visible
+        if show_settings:
+            action = self._handle_settings_events(event)
+            if action:
+                return action
+                
+        # If popup is not visible, check for other clicks
+        if not show_settings and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            # First check game preview click
+            action = self._handle_preview_click(event)
+            if action:
+                return action
+                
+            # Then check game board click
+            action = self._handle_board_click(event)
+            if action:
+                return action
+                
+            # Check for restart button click
+            action = self._handle_restart_button_click(event, engine)
+            if action:
+                return action
+                
+        return None 

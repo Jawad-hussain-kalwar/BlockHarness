@@ -1,7 +1,7 @@
 # ui/views/game_section.py
 import pygame
 from ui.layout import (
-    PADDING, DDA_WIDTH, SIM_WIDTH, GAME_WIDTH, SECTION_HEIGHT,
+    PADDING, GAME_WIDTH, SECTION_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT,
     STATS_HEIGHT, HINTS_HEIGHT, BOARD_SIZE, BOARD_PADDING_W, PREVIEW_HEIGHT, PREVIEW_BLOCK,
     PREVIEW_PADDING_H, PREVIEW_PADDING_V, PREVIEW_GAP
 )
@@ -9,26 +9,24 @@ from ui.views.board_view import BoardView
 from ui.views.preview_view import PreviewView
 from ui.views.hud_view import HudView
 from ui.views.overlay_view import OverlayView
-from ui.debug import draw_debug_rect
 
 class GameSection:
     """Game section that consolidates board, preview, and HUD views."""
     
-    def __init__(self, window_size, font, small_font):
-        self.window_size = window_size
+    def __init__(self, font, small_font):
         self.font = font
         self.small_font = small_font
         
-        # Initialize section rectangle with new layout constants
-        x_origin = PADDING + DDA_WIDTH + PADDING + SIM_WIDTH + PADDING
+        # Fixed position at the top of the window
+        x_origin = PADDING
         y_origin = PADDING
-        self.rect = pygame.Rect(x_origin, y_origin, GAME_WIDTH, SECTION_HEIGHT)
+        self.rect = pygame.Rect(x_origin, y_origin, GAME_WIDTH - 2*PADDING, SECTION_HEIGHT)
         
         # Calculate cell sizes based on board_size
-        self.cell_size = BOARD_SIZE // 8  # For a 10x10 board
+        self.cell_size = BOARD_SIZE // 8  # For a 8x8 board
         self.preview_cell_size = PREVIEW_BLOCK // 5  # For 5x5 preview blocks
         
-        # Initialize views with new positioning
+        # Initialize views with fixed positioning
         self.board_view = BoardView(
             (self.rect.x + BOARD_PADDING_W, self.rect.y + STATS_HEIGHT + HINTS_HEIGHT),
             self.cell_size,
@@ -54,32 +52,29 @@ class GameSection:
             self.font
         )
         
-        self.overlay_view = OverlayView(self.window_size, font, small_font)
+        self.overlay_view = OverlayView(self.font, small_font)
     
-    def draw(self, surface, engine, simulation_over=False, simulation_stats=None):
-        """Draw all game section components."""
-        # Draw debug border if enabled
-        draw_debug_rect(surface, self.rect, "game")
-        
-        # Draw board
-        self.board_view.draw(surface, engine)
+    def render(self, surface, engine, simulation_over=False, simulation_stats=None):
+        """render all game section components."""
+        # render board
+        self.board_view.render(surface, engine)
         
         # Get preview data from engine
         preview_blocks = engine.get_preview_blocks()
         selected_index = engine.get_selected_preview_index()
         
-        # Draw preview blocks
-        self.preview_view.draw(surface, preview_blocks, selected_index)
+        # render preview blocks
+        self.preview_view.render(surface, preview_blocks, selected_index)
         
-        # Draw HUD (score, lines, blocks, hints)
-        self.hud_view.draw(surface, engine)
+        # render HUD (score, lines, blocks, hints)
+        self.hud_view.render(surface, engine)
         
-        # Draw simulation over overlay if simulation just finished
+        # render simulation over overlay if simulation just finished
         if simulation_over:
-            self.overlay_view.draw_simulation_over(surface, simulation_stats)
-        # Otherwise draw regular game over if needed
+            self.overlay_view.render_simulation_over(surface, simulation_stats)
+        # Otherwise render regular game over if needed
         elif engine.game_over:
-            self.overlay_view.draw_game_over(surface, engine)
+            self.overlay_view.render_game_over(surface, engine)
     
     def handle_board_click(self, x, y):
         """Handle click on the game board to place a block.

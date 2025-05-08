@@ -1,0 +1,279 @@
+digraph G {
+concentrate=true;
+splines="ortho";
+rankdir="LR";
+subgraph legend{
+    rank = min;
+    label = "legend";
+    Legend [shape=none, margin=0, label = <
+        <table cellspacing="0" cellpadding="0" border="1"><tr><td>Code2flow Legend</td></tr><tr><td>
+        <table cellspacing="0">
+        <tr><td>Regular function</td><td width="50px" bgcolor='#cccccc'></td></tr>
+        <tr><td>Trunk function (nothing calls this)</td><td bgcolor='#966F33'></td></tr>
+        <tr><td>Leaf function (this calls nothing else)</td><td bgcolor='#6db33f'></td></tr>
+        <tr><td>Function call</td><td><font color='black'>&#8594;</font></td></tr>
+        </table></td></tr></table>
+        >];
+}node_a75f2ae4 [label="73: __init__()" name="animation::AnimationManager.__init__" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_4fc9cd9f [label="8: __init__()" name="block::Block.__init__" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_ff8bf3dd [label="10: __init__()" name="block_pool::BlockPool.__init__" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_986ab44e [label="146: _filter_blocks_below_threshold()" name="block_pool::BlockPool._filter_blocks_below_threshold" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_86871dd6 [label="238: _generate_blocks_above_threshold()" name="block_pool::BlockPool._generate_blocks_above_threshold" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_b3e36d4b [label="199: _generate_blocks_below_threshold()" name="block_pool::BlockPool._generate_blocks_below_threshold" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_f347c4ba [label="94: _generate_next_blocks()" name="block_pool::BlockPool._generate_next_blocks" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_6e75f229 [label="165: _instantiate_block()" name="block_pool::BlockPool._instantiate_block" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_f8bcd5c3 [label="40: _load_config()" name="block_pool::BlockPool._load_config" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_345d0786 [label="275: _select_distinct_blocks()" name="block_pool::BlockPool._select_distinct_blocks" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_52f39a80 [label="176: _should_add_best_fit_blocks()" name="block_pool::BlockPool._should_add_best_fit_blocks" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_23586f2a [label="133: _update_L_value()" name="block_pool::BlockPool._update_L_value" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_855f1fe4 [label="75: get_next_blocks()" name="block_pool::BlockPool.get_next_blocks" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_2ac4aeb7 [label="7: __init__()" name="board::Board.__init__" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_7819105d [label="8: __init__()" name="board_view::BoardView.__init__" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_ba2a28b2 [label="16: __init__()" name="game_controller::GameController.__init__" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_8e10983f [label="128: handle_events()" name="game_controller::GameController.handle_events" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_a0813b75 [label="160: loop()" name="game_controller::GameController.loop" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_ae4f15e4 [label="155: render()" name="game_controller::GameController.render" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_000cbbec [label="14: __init__()" name="game_engine::GameEngine.__init__" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_7d553b80 [label="246: _refill_preview()" name="game_engine::GameEngine._refill_preview" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_8a9dd3ba [label="91: get_metrics()" name="game_engine::GameEngine.get_metrics" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_263f482e [label="16: __init__()" name="game_section::GameSection.__init__" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_5a3e805f [label="7: __init__()" name="hud_view::HudView.__init__" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_de2a21ec [label="9: __init__()" name="input_field::InputField.__init__" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_9a39af90 [label="12: __init__()" name="main_view::MainView.__init__" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_cebb1040 [label="22: update_config_fields()" name="main_view::MainView.update_config_fields" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_379272e8 [label="8: __init__()" name="overlay_view::OverlayView.__init__" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_a0974326 [label="25: main()" name="play::main" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_ecabd8ec [label="8: parse_args()" name="play::parse_args" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_f82f6670 [label="6: __init__()" name="preview_view::PreviewView.__init__" shape="rect" style="rounded,filled" fillcolor="#6db33f" ];
+node_acd2bf7c [label="8: __init__()" name="settings_popup::SettingsPopup.__init__" shape="rect" style="rounded,filled" fillcolor="#cccccc" ];
+node_ff8bf3dd -> node_f8bcd5c3 [color="#0072B2" penwidth="2"];
+node_86871dd6 -> node_4fc9cd9f [color="#D55E00" penwidth="2"];
+node_86871dd6 -> node_345d0786 [color="#D55E00" penwidth="2"];
+node_86871dd6 -> node_345d0786 [color="#D55E00" penwidth="2"];
+node_b3e36d4b -> node_986ab44e [color="#009E73" penwidth="2"];
+node_b3e36d4b -> node_6e75f229 [color="#009E73" penwidth="2"];
+node_b3e36d4b -> node_345d0786 [color="#009E73" penwidth="2"];
+node_b3e36d4b -> node_345d0786 [color="#009E73" penwidth="2"];
+node_b3e36d4b -> node_52f39a80 [color="#009E73" penwidth="2"];
+node_f347c4ba -> node_86871dd6 [color="#56B4E9" penwidth="2"];
+node_f347c4ba -> node_b3e36d4b [color="#56B4E9" penwidth="2"];
+node_f347c4ba -> node_23586f2a [color="#56B4E9" penwidth="2"];
+node_6e75f229 -> node_4fc9cd9f [color="#E69F00" penwidth="2"];
+node_345d0786 -> node_6e75f229 [color="#D55E00" penwidth="2"];
+node_855f1fe4 -> node_f347c4ba [color="#F0E442" penwidth="2"];
+node_855f1fe4 -> node_8a9dd3ba [color="#F0E442" penwidth="2"];
+node_ba2a28b2 -> node_000cbbec [color="#56B4E9" penwidth="2"];
+node_ba2a28b2 -> node_9a39af90 [color="#56B4E9" penwidth="2"];
+node_ba2a28b2 -> node_cebb1040 [color="#56B4E9" penwidth="2"];
+node_a0813b75 -> node_8e10983f [color="#0072B2" penwidth="2"];
+node_a0813b75 -> node_ae4f15e4 [color="#0072B2" penwidth="2"];
+node_ae4f15e4 -> node_ae4f15e4 [color="#F0E442" penwidth="2"];
+node_000cbbec -> node_a75f2ae4 [color="#F0E442" penwidth="2"];
+node_000cbbec -> node_ff8bf3dd [color="#F0E442" penwidth="2"];
+node_000cbbec -> node_ff8bf3dd [color="#F0E442" penwidth="2"];
+node_000cbbec -> node_2ac4aeb7 [color="#F0E442" penwidth="2"];
+node_000cbbec -> node_7d553b80 [color="#F0E442" penwidth="2"];
+node_7d553b80 -> node_855f1fe4 [color="#000000" penwidth="2"];
+node_263f482e -> node_7819105d [color="#D55E00" penwidth="2"];
+node_263f482e -> node_5a3e805f [color="#D55E00" penwidth="2"];
+node_263f482e -> node_379272e8 [color="#D55E00" penwidth="2"];
+node_263f482e -> node_f82f6670 [color="#D55E00" penwidth="2"];
+node_9a39af90 -> node_263f482e [color="#000000" penwidth="2"];
+node_9a39af90 -> node_acd2bf7c [color="#000000" penwidth="2"];
+node_a0974326 -> node_ba2a28b2 [color="#D55E00" penwidth="2"];
+node_a0974326 -> node_a0813b75 [color="#D55E00" penwidth="2"];
+node_a0974326 -> node_ecabd8ec [color="#D55E00" penwidth="2"];
+node_acd2bf7c -> node_de2a21ec [color="#F0E442" penwidth="2"];
+node_acd2bf7c -> node_de2a21ec [color="#F0E442" penwidth="2"];
+node_acd2bf7c -> node_de2a21ec [color="#F0E442" penwidth="2"];
+node_acd2bf7c -> node_de2a21ec [color="#F0E442" penwidth="2"];
+subgraph cluster_f3720ccb {
+    label="File: animation";
+    name="animation";
+    style="filled";
+    graph[style=dotted];
+    subgraph cluster_6d441a67 {
+        node_a75f2ae4;
+        label="Class: AnimationManager";
+        name="AnimationManager";
+        style="filled";
+        graph[style=dotted];
+    };
+};
+subgraph cluster_e888ed09 {
+    label="File: block";
+    name="block";
+    style="filled";
+    graph[style=dotted];
+    subgraph cluster_e2e6b176 {
+        node_4fc9cd9f;
+        label="Class: Block";
+        name="Block";
+        style="filled";
+        graph[style=dotted];
+    };
+};
+subgraph cluster_698e4f17 {
+    label="File: block_pool";
+    name="block_pool";
+    style="filled";
+    graph[style=dotted];
+    subgraph cluster_42794fe0 {
+        node_ff8bf3dd node_f8bcd5c3 node_855f1fe4 node_f347c4ba node_23586f2a node_986ab44e node_6e75f229 node_52f39a80 node_b3e36d4b node_86871dd6 node_345d0786;
+        label="Class: BlockPool";
+        name="BlockPool";
+        style="filled";
+        graph[style=dotted];
+    };
+};
+subgraph cluster_13d6f6b0 {
+    label="File: board";
+    name="board";
+    style="filled";
+    graph[style=dotted];
+    subgraph cluster_f9bc6300 {
+        node_2ac4aeb7;
+        label="Class: Board";
+        name="Board";
+        style="filled";
+        graph[style=dotted];
+    };
+};
+subgraph cluster_c09ec451 {
+    label="File: board_view";
+    name="board_view";
+    style="filled";
+    graph[style=dotted];
+    subgraph cluster_c9dc9efc {
+        node_7819105d;
+        label="Class: BoardView";
+        name="BoardView";
+        style="filled";
+        graph[style=dotted];
+    };
+};
+subgraph cluster_a8f58044 {
+    label="File: game_controller";
+    name="game_controller";
+    style="filled";
+    graph[style=dotted];
+    subgraph cluster_42115bb9 {
+        node_ba2a28b2 node_8e10983f node_ae4f15e4 node_a0813b75;
+        label="Class: GameController";
+        name="GameController";
+        style="filled";
+        graph[style=dotted];
+    };
+};
+subgraph cluster_8bdd50e3 {
+    label="File: game_engine";
+    name="game_engine";
+    style="filled";
+    graph[style=dotted];
+    subgraph cluster_3b8bfa58 {
+        node_000cbbec node_8a9dd3ba node_7d553b80;
+        label="Class: GameEngine";
+        name="GameEngine";
+        style="filled";
+        graph[style=dotted];
+    };
+};
+subgraph cluster_f36060d1 {
+    label="File: game_section";
+    name="game_section";
+    style="filled";
+    graph[style=dotted];
+    subgraph cluster_3419e882 {
+        node_263f482e;
+        label="Class: GameSection";
+        name="GameSection";
+        style="filled";
+        graph[style=dotted];
+    };
+};
+subgraph cluster_eae54da9 {
+    label="File: hud_view";
+    name="hud_view";
+    style="filled";
+    graph[style=dotted];
+    subgraph cluster_ec89f1ea {
+        node_5a3e805f;
+        label="Class: HudView";
+        name="HudView";
+        style="filled";
+        graph[style=dotted];
+    };
+};
+subgraph cluster_e51ce7b9 {
+    label="File: input_field";
+    name="input_field";
+    style="filled";
+    graph[style=dotted];
+    subgraph cluster_2a117dd5 {
+        node_de2a21ec;
+        label="Class: InputField";
+        name="InputField";
+        style="filled";
+        graph[style=dotted];
+    };
+};
+subgraph cluster_da06a33c {
+    label="File: main_view";
+    name="main_view";
+    style="filled";
+    graph[style=dotted];
+    subgraph cluster_9bc94143 {
+        node_9a39af90 node_cebb1040;
+        label="Class: MainView";
+        name="MainView";
+        style="filled";
+        graph[style=dotted];
+    };
+};
+subgraph cluster_1690eadb {
+    label="File: overlay_view";
+    name="overlay_view";
+    style="filled";
+    graph[style=dotted];
+    subgraph cluster_c84b8b09 {
+        node_379272e8;
+        label="Class: OverlayView";
+        name="OverlayView";
+        style="filled";
+        graph[style=dotted];
+    };
+};
+subgraph cluster_92a9024e {
+    node_ecabd8ec node_a0974326;
+    label="File: play";
+    name="play";
+    style="filled";
+    graph[style=dotted];
+};
+subgraph cluster_80c636ac {
+    label="File: preview_view";
+    name="preview_view";
+    style="filled";
+    graph[style=dotted];
+    subgraph cluster_f2c6d462 {
+        node_f82f6670;
+        label="Class: PreviewView";
+        name="PreviewView";
+        style="filled";
+        graph[style=dotted];
+    };
+};
+subgraph cluster_e516c8dc {
+    label="File: settings_popup";
+    name="settings_popup";
+    style="filled";
+    graph[style=dotted];
+    subgraph cluster_722583c9 {
+        node_acd2bf7c;
+        label="Class: SettingsPopup";
+        name="SettingsPopup";
+        style="filled";
+        graph[style=dotted];
+    };
+};
+}

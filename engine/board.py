@@ -9,21 +9,21 @@ class Board:
         self.cols = cols
         self.grid = [[0] * cols for _ in range(rows)]
 
-    @staticmethod
-    def from_grid(grid: List[List[int]]) -> 'Board':
-        """Create a new Board instance from an existing grid.
+    # @staticmethod
+    # def from_grid(grid: List[List[int]]) -> 'Board':
+    #     """Create a new Board instance from an existing grid.
         
-        Args:
-            grid: 2D list representing the board state
+    #     Args:
+    #         grid: 2D list representing the board state
             
-        Returns:
-            New Board instance with the provided grid
-        """
-        rows = len(grid)
-        cols = len(grid[0]) if rows > 0 else 0
-        board = Board(rows, cols)
-        board.grid = [row[:] for row in grid]  # Create a deep copy of the grid
-        return board
+    #     Returns:
+    #         New Board instance with the provided grid
+    #     """
+    #     rows = len(grid)
+    #     cols = len(grid[0]) if rows > 0 else 0
+    #     board = Board(rows, cols)
+    #     board.grid = [row[:] for row in grid]  # Create a deep copy of the grid
+    #     return board
 
     # ────────────────────────── placement helpers ──────────────────────────
 
@@ -77,24 +77,3 @@ class Board:
         for r, c in cells:
             if 0 <= r < self.rows and 0 <= c < self.cols:
                 self.grid[r][c] = 0
-
-    def clear_full_lines(self) -> int:
-        """Clear any full rows/cols; return number of lines removed."""
-        # Identify full rows and columns
-        full_rows = [r for r in range(self.rows) if all(self.grid[r][c] for c in range(self.cols))]
-        full_cols = [c for c in range(self.cols) if all(self.grid[r][c] for r in range(self.rows))]
-
-        # Collect all cells to clear
-        cells_to_clear = set()
-        for r in full_rows:
-            for c in range(self.cols):
-                cells_to_clear.add((r, c))
-        for c in full_cols:
-            for r in range(self.rows):
-                cells_to_clear.add((r, c))
-
-        # Clear the identified cells
-        self.clear_cells(cells_to_clear)
-
-        # Return the number of lines cleared (rows + columns)
-        return len(full_rows) + len(full_cols)

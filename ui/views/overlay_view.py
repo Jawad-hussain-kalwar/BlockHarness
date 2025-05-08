@@ -2,10 +2,10 @@
 import pygame
 from ui.colours import BG_COLOR, OVERLAY, GREEN
 from ui.font_manager import font_manager
+from ui.layout import WINDOW_WIDTH, WINDOW_HEIGHT
 
 class OverlayView:
-    def __init__(self, window_size, large_font, font):
-        self.window_size = window_size
+    def __init__(self, large_font, font):
         self.large_font = large_font
         self.font = font
         
@@ -37,31 +37,31 @@ class OverlayView:
             pygame.SRCALPHA
         )
         
-        # Draw the text multiple times for the outline
+        # render the text multiple times for the outline
         for dx in range(-outline_width, outline_width+1):
             for dy in range(-outline_width, outline_width+1):
                 if dx != 0 or dy != 0:  # Skip the center position
                     outlined_surface.blit(text_surface, (outline_width + dx, outline_width + dy))
         
-        # Draw the main text in the center
+        # render the main text in the center
         main_text = font.render(text, True, color)
         outlined_surface.blit(main_text, (outline_width, outline_width))
         
         return outlined_surface
     
-    def draw_game_over(self, surface, engine=None):
+    def render_game_over(self, surface, engine=None):
         # Create overlay surface
-        overlay = pygame.Surface((self.window_size[0], self.window_size[1]), pygame.SRCALPHA)
+        overlay = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
         overlay.fill(OVERLAY)
         surface.blit(overlay, (0, 0))
         
-        # Draw game over text with crimson outline
+        # render game over text with crimson outline
         game_over_text = self._render_text_with_outline(
             self.game_over_font, "GAME OVER", (255, 255, 255), 
             self.game_over_outline_color, self.outline_thickness
         )
-        text_x = (self.window_size[0] - game_over_text.get_width()) // 2
-        text_y = (self.window_size[1] // 3) - (game_over_text.get_height() // 2)  # Improved positioning
+        text_x = (WINDOW_WIDTH - game_over_text.get_width()) // 2
+        text_y = (WINDOW_HEIGHT // 3) - (game_over_text.get_height() // 2)  # Improved positioning
         surface.blit(game_over_text, (text_x, text_y))
         
         # Display game stats if engine is provided
@@ -80,53 +80,53 @@ class OverlayView:
                     self.stats_font, stat, (255, 255, 255),
                     self.stats_outline_color, self.outline_thickness
                 )
-                stat_x = (self.window_size[0] - stat_text.get_width()) // 2
+                stat_x = (WINDOW_WIDTH - stat_text.get_width()) // 2
                 surface.blit(stat_text, (stat_x, stats_y + i * 60))  # More space between stats
         
-        # Draw restart button with dark green outline
-        button_y = self.window_size[1] * 3 // 4  # Position at 3/4 of the screen height
-        button_x = (self.window_size[0] - self.button_width) // 2
+        # render restart button with dark green outline
+        button_y = WINDOW_HEIGHT * 3 // 4  # Position at 3/4 of the screen height
+        button_x = (WINDOW_WIDTH - self.button_width) // 2
         self.restart_button_rect = pygame.Rect(button_x, button_y, self.button_width, self.button_height)
         
         # Check if mouse is hovering over button
         mouse_pos = pygame.mouse.get_pos()
         button_color = self.button_hover_color if self.restart_button_rect.collidepoint(mouse_pos) else self.button_color
         
-        # Draw button with outline
+        # render button with outline
         pygame.draw.rect(surface, button_color, self.restart_button_rect, border_radius=8)
         pygame.draw.rect(surface, self.button_outline_color, self.restart_button_rect, 
                         width=self.outline_thickness, border_radius=8)
         
-        # Draw button text
+        # render button text
         restart_button_text = self.large_font.render("Restart Game", True, BG_COLOR)
         text_rect = restart_button_text.get_rect(center=self.restart_button_rect.center)
         surface.blit(restart_button_text, text_rect)
         
-        # Draw key instructions with more space
+        # render key instructions with more space
         controls_y = button_y + self.button_height + 30
         restart_text = self.font.render("Press ENTER to restart", True, (255, 255, 255))
-        restart_x = (self.window_size[0] - restart_text.get_width()) // 2
+        restart_x = (WINDOW_WIDTH - restart_text.get_width()) // 2
         surface.blit(restart_text, (restart_x, controls_y))
         
         # Add ESC to exit instruction
         exit_text = self.font.render("Press ESC to exit", True, (255, 255, 255))
-        exit_x = (self.window_size[0] - exit_text.get_width()) // 2
+        exit_x = (WINDOW_WIDTH - exit_text.get_width()) // 2
         surface.blit(exit_text, (exit_x, controls_y + 30))
     
-    def draw_simulation_over(self, surface, simulation_stats=None):
-        """Draw the simulation over screen with batch run statistics."""
+    def render_simulation_over(self, surface, simulation_stats=None):
+        """render the simulation over screen with batch run statistics."""
         # Create overlay surface
-        overlay = pygame.Surface((self.window_size[0], self.window_size[1]), pygame.SRCALPHA)
+        overlay = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
         overlay.fill(OVERLAY)
         surface.blit(overlay, (0, 0))
         
-        # Draw simulation over text with dark blue outline
+        # render simulation over text with dark blue outline
         sim_over_text = self._render_text_with_outline(
             self.game_over_font, "SIMULATION COMPLETE", (255, 255, 255),
             self.simulation_outline_color, self.outline_thickness
         )
-        text_x = (self.window_size[0] - sim_over_text.get_width()) // 2
-        text_y = (self.window_size[1] // 3) - (sim_over_text.get_height() // 2)  # Improved positioning
+        text_x = (WINDOW_WIDTH - sim_over_text.get_width()) // 2
+        text_y = (WINDOW_HEIGHT // 3) - (sim_over_text.get_height() // 2)  # Improved positioning
         surface.blit(sim_over_text, (text_x, text_y))
         
         # Display simulation batch stats if provided
@@ -146,37 +146,37 @@ class OverlayView:
                     self.stats_font, stat, (255, 255, 255),
                     self.stats_outline_color, self.outline_thickness
                 )
-                stat_x = (self.window_size[0] - stat_text.get_width()) // 2
+                stat_x = (WINDOW_WIDTH - stat_text.get_width()) // 2
                 surface.blit(stat_text, (stat_x, stats_y + i * 60))  # More space between stats
         
-        # Draw restart button with dark green outline
-        button_y = self.window_size[1] * 3 // 4  # Position at 3/4 of the screen height
-        button_x = (self.window_size[0] - self.button_width) // 2
+        # render restart button with dark green outline
+        button_y = WINDOW_HEIGHT * 3 // 4  # Position at 3/4 of the screen height
+        button_x = (WINDOW_WIDTH - self.button_width) // 2
         self.restart_button_rect = pygame.Rect(button_x, button_y, self.button_width, self.button_height)
         
         # Check if mouse is hovering over button
         mouse_pos = pygame.mouse.get_pos()
         button_color = self.button_hover_color if self.restart_button_rect.collidepoint(mouse_pos) else self.button_color
         
-        # Draw button with outline
+        # render button with outline
         pygame.draw.rect(surface, button_color, self.restart_button_rect, border_radius=8)
         pygame.draw.rect(surface, self.button_outline_color, self.restart_button_rect, 
                         width=self.outline_thickness, border_radius=8)
         
-        # Draw button text
+        # render button text
         restart_button_text = self.large_font.render("New Simulation", True, BG_COLOR)
         text_rect = restart_button_text.get_rect(center=self.restart_button_rect.center)
         surface.blit(restart_button_text, text_rect)
         
-        # Draw key instructions with more space
+        # render key instructions with more space
         controls_y = button_y + self.button_height + 30
         restart_text = self.font.render("Press ENTER to restart", True, (255, 255, 255))
-        restart_x = (self.window_size[0] - restart_text.get_width()) // 2
+        restart_x = (WINDOW_WIDTH - restart_text.get_width()) // 2
         surface.blit(restart_text, (restart_x, controls_y))
         
         # Add ESC to exit instruction
         exit_text = self.font.render("Press ESC to exit", True, (255, 255, 255))
-        exit_x = (self.window_size[0] - exit_text.get_width()) // 2
+        exit_x = (WINDOW_WIDTH - exit_text.get_width()) // 2
         surface.blit(exit_text, (exit_x, controls_y + 30))
         
     def is_restart_button_clicked(self, pos):
