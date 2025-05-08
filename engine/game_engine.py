@@ -57,6 +57,10 @@ class GameEngine:
         self._preview_blocks = []  # List of blocks (no rotation)
         self._selected_preview_index = None
         
+        # Animation management
+        self.animation_manager = AnimationManager()
+        self.animation_duration_ms = 300  # Default animation duration in milliseconds
+
         # Now call refill_preview after metrics_manager is initialized
         try:
             self._refill_preview()
@@ -65,10 +69,6 @@ class GameEngine:
             # If refill fails, initialize with empty preview
             self._preview_blocks = []
             self._selected_preview_index = None
-        
-        # Animation management
-        self.animation_manager = AnimationManager()
-        self.animation_duration_ms = 300  # Default animation duration in milliseconds
 
     @staticmethod
     def compute_line_score(cells: int) -> int:
@@ -81,7 +81,7 @@ class GameEngine:
             int: Score awarded for clearing those cells
         """
         # Award 1 point per cleared cell
-        return cells
+        return cells * 10
 
     # ───────────────────────── Public API ──────────────────────────
 
@@ -186,18 +186,20 @@ class GameEngine:
                 )
                 # Update lines count (count of lines cleared)
                 self.lines += line_count
+                self.metrics_manager.lines_cleared += line_count
                 # Update score based on number of cells cleared
                 self.score += self.compute_line_score(len(cells_to_clear))
             else:
                 # Skip animation when duration is 0 (simulation mode)
                 self.lines += line_count
+                self.metrics_manager.lines_cleared += line_count
                 self.score += self.compute_line_score(len(cells_to_clear))
                 # Immediately clear the cells
                 # print("[engine/game_engine.py][219] Immediately clearing cells - simulation mode")
                 self.board.clear_cells(cells_to_clear)
         else:
             # No lines to clear, just add 1 point for block placement
-            self.score += 1
+            self.score += len(block.cells)
             
         # Update metrics for move completion
         self.metrics_manager.score = self.score
@@ -208,15 +210,13 @@ class GameEngine:
         
         # Update selected index or reset if none left
         if not self._preview_blocks:
-            self._selected_preview_index = None
             self._refill_preview()
         else:
             self._selected_preview_index = min(self._selected_preview_index, len(self._preview_blocks) - 1)
-        
+
         # Check for game over (if no animations in progress or no duration)
         if not cells_to_clear or self.animation_duration_ms == 0:
-            self._check_game_over()
-        
+            self._check_game_over()        
         return True
     
     def update_animations(self) -> None:
@@ -262,19 +262,14 @@ class GameEngine:
     
     # ──────────────────────── Private methods ────────────────────────
 
-    def _refill_preview(self, target_count=3):
+    def _refill_preview(self):
         """Fill the preview with blocks up to the target count."""
-        # Determine how many blocks to generate
-        num_to_generate = max(0, target_count - len(self._preview_blocks))
         # Update game state metrics (every frame)
         self.metrics_manager.update_block_metrics(self.board)
-                                                  
-        if num_to_generate <= 0:
-            return  # Preview already has enough blocks
             
         try:
             # Get blocks directly from the enhanced BlockPool
-            new_blocks = self.pool.get_next_blocks(self, num_to_generate)
+            new_blocks = self.pool.get_next_blocks(self)
             
             # Add new blocks to preview
             self._preview_blocks.extend(new_blocks)

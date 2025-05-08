@@ -1,8 +1,6 @@
 # tests/test_metrics_manager.py
 import unittest
-from typing import Dict, List, Tuple, Set
 from engine.board import Board
-from engine.block import Block
 from utils.metrics_manager import MetricsManager
 from engine.shapes import SHAPES
 

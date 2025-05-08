@@ -110,7 +110,7 @@ CONFIG = {
         "fragmentation_count": True,
         "largest_empty_region": True,
         "danger_score": False,
-        "phase": False,
+        "phase": True,
         
         # Player State Metrics
         "move_count": True,
@@ -120,17 +120,6 @@ CONFIG = {
         "recent_clears": True,  # History of recent line clears
         "perf_band": False,
         "player_level": False,
-        "emotional_state": False,
-        "placement_efficiency": False,  # Efficiency of block placements
-        
-        # Timing Metrics
-        "time_per_move": False,
-        "avg_time_per_move": False,
-        
-        # Mistake Metrics
-        "mistake_flag": False,
-        "mistake_count": False,
-        "mistake_rate": False,
-        "mistake_sw": False
+        "emotional_state": False
     }
 } 

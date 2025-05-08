@@ -3,7 +3,7 @@ from typing import Dict, List, Set, Tuple, Optional
 from collections import deque
 from engine.board import Board
 from engine.block import Block
-
+from typing import Dict, List, Tuple
 
 class MetricsManager:
     """Manages game metrics collection and calculation."""
@@ -109,79 +109,82 @@ class MetricsManager:
         self.num_game_over_blocks = len(self.game_over_blocks)
 
     def _compute_best_fit(
-        self, shapes: Dict[str, List[Tuple[int, int]]], board: Board
+        self,
+        shapes: Dict[str, List[Tuple[int, int]]],
+        board: Board,
     ) -> Tuple[str, Tuple[int, int], int]:
-        """Identify block shape and position that clears the most lines.
+        """
+        Pick the shape and placement that clears the most *distinct* lines.
 
         Args:
-            shapes: Dictionary of all possible block shapes
-            board: Current game board
+            shapes: Mapping of shape names ➜ list of (row, col) offsets.
+            board:  Current board state *before* the drop.
 
         Returns:
-            Tuple of (block_name, (row, col), lines_cleared)
+            (shape_name, (top_row, left_col), lines_cleared)
+            If no legal placement exists → ("None", (-1, -1), 0)
         """
-        best_block_name = "None"
-        best_position = (-1, -1)
-        max_lines_cleared = 0
+        # Initialize best candidate and fallback for first valid placement
+        best_shape: str = "None"
+        best_pos: Tuple[int, int] = (-1, -1)
+        best_lines: int = 0
+        fallback_shape: str = "None"
+        fallback_pos: Tuple[int, int] = (-1, -1)
 
-        # Track fallback when no lines can be cleared
-        fallback_block = "None"
-        fallback_position = (-1, -1)
-        min_height = board.rows  # For tie-breaking on height
+        # Pre-compute helpers.
+        board_rows: int = board.rows
+        board_cols: int = board.cols
+        centre_x: float = (board_cols - 1) / 2  # fractional centre column
 
-        board_center = board.cols // 2
+        for shape_name in sorted(shapes):  # deterministic iteration
+            block = Block(shapes[shape_name])
 
-        # Process shapes in a consistent order
-        for shape_name in sorted(shapes.keys()):
-            cells = shapes[shape_name]
-            block = Block(cells)
+            for top in range(board_rows - block.height + 1):
+                for left in range(board_cols - block.width + 1):
+                    if not board.can_place(block, top, left):
+                        continue
 
-            for r in range(board.rows):
-                for c in range(board.cols):
-                    if board.can_place(block, r, c):
-                        # Track as fallback (prefer higher placements)
-                        if fallback_block == "None" or r < min_height:
-                            fallback_block = shape_name
-                            fallback_position = (r, c)
-                            min_height = r
+                    # Record first valid placement as fallback
+                    if fallback_shape == "None":
+                        fallback_shape = shape_name
+                        fallback_pos = (top, left)
 
-                        # Simulate placement
-                        temp_board = Board.from_grid(board.grid)
-                        temp_board.place_block(block, r, c)
-                        cleared = temp_board.find_full_lines()
-                        lines = self._count_lines(cleared)
+                    # Simulate placement and count cleared lines via clear_full_lines
+                    temp = Board.from_grid(board.grid)
+                    temp.place_block(block, top, left)
+                    # Board.clear_full_lines returns rows+cols cleared
+                    lines_cleared = temp.clear_full_lines()
+                    # Cap to theoretical maximum
+                    if lines_cleared > 6:
+                        raise ValueError(f"Invalid line count: {lines_cleared} for shape {shape_name} at ({top}, {left})")
 
-                        # Update if better
-                        if lines > max_lines_cleared:
-                            max_lines_cleared = lines
-                            best_block_name = shape_name
-                            best_position = (r, c)
-                        elif lines == max_lines_cleared > 0:
-                            # For equal line clears, prioritize specific blocks
-                            if (
-                                shape_name == "1x2-line"
-                                and best_block_name != "1x2-line"
-                            ):
-                                best_block_name = shape_name
-                                best_position = (r, c)
-                            # Tie-breaking: prefer higher placements (lower r)
-                            elif r < best_position[0]:
-                                best_block_name = shape_name
-                                best_position = (r, c)
-                            # If same height, prefer more centered columns
-                            elif r == best_position[0]:
-                                if abs(c - board_center) < abs(
-                                    best_position[1] - board_center
-                                ):
-                                    best_block_name = shape_name
-                                    best_position = (r, c)
+                    # ---------- Choose the better candidate -------------------------
+                    if lines_cleared > best_lines:
+                        best_shape = shape_name
+                        best_pos = (top, left)
+                        best_lines = lines_cleared
+                        continue
 
-        # If no blocks can clear lines, use fallback
-        if max_lines_cleared == 0:
-            best_block_name = fallback_block
-            best_position = fallback_position
+                    if lines_cleared == best_lines and lines_cleared > 0:
+                        # Lower `top` = piece lands earlier (gravity tie-break).
+                        current_centre_dist = abs((left + block.width / 2) - centre_x)
+                        best_block = Block(shapes[best_shape])
+                        best_centre_dist = abs(
+                            (best_pos[1] + best_block.width / 2) - centre_x
+                        )
 
-        return (best_block_name, best_position, max_lines_cleared)
+                        if top < best_pos[0] or (
+                            top == best_pos[0] and current_centre_dist < best_centre_dist
+                        ):
+                            best_shape = shape_name
+                            best_pos = (top, left)
+                    # ----------------------------------------------------------------
+
+        # If no clear improvement found, fallback to first valid placement
+        if best_lines == 0:
+            best_shape = fallback_shape
+            best_pos = fallback_pos
+        return (best_shape, best_pos, best_lines)
 
     def _can_place_anywhere(self, board: Board, block: Block) -> bool:
         """Check if block can be placed anywhere on the board.

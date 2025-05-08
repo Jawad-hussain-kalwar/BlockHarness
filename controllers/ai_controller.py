@@ -62,6 +62,19 @@ class AIController(BaseController):
         if self.engine.game_over:
             return False
             
+        # Update metrics to compute current best-fit block
+        # Game state metrics are refreshed elsewhere; update best-fit based on board state
+        self.engine.metrics_manager.update_block_metrics(self.engine.board)
+        # Auto-select the best-fit block in the preview if available
+        metrics = self.engine.get_metrics()
+        best_name = metrics.get("best_fit_block")
+        if best_name and "shapes" in self.config:
+            # Find index of block matching best-fit shape
+            for idx, block in enumerate(self.engine.get_preview_blocks()):
+                # Compare block cells to shape definition
+                if block.cells == self.config["shapes"].get(best_name):
+                    self.select_block(idx)
+                    break
         # Get the current selected preview index
         selected_index = self.engine.get_selected_preview_index()
         if selected_index is None:
