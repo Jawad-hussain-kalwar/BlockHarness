@@ -3,19 +3,19 @@ import pygame
 import ctypes
 import sys
 import os
-from typing import Optional, Dict, Any, Tuple, cast, Callable
+from typing import Optional, Dict, Any, cast
 
 from engine.game_engine import GameEngine
 from ui.views.main_view import MainView
-from ui.layout import GAME_WIDTH, WINDOW_HEIGHT, WINDOW_WIDTH
-from config.defaults import CONFIG
+from ui.layout import WINDOW_HEIGHT, WINDOW_WIDTH
 
 
 class GameController:
     """Controller for handling Pygame UI and game interactions."""
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         # Load configuration
-        self.config = config or CONFIG.copy()
+        self.config = config
+
         # Create game engine
         self.engine = GameEngine(self.config)
 
@@ -29,6 +29,7 @@ class GameController:
         # Initialize pygame
         pygame.init()
         pygame.display.set_caption('BlockHarness')
+
         # Load icon
         try:
             ico_path = os.path.join(os.path.dirname(__file__), '..', 'ico.ico')
@@ -40,8 +41,7 @@ class GameController:
         # Setup fixed window size
         self.window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         
-        # Clock and view
-        self.clock = pygame.time.Clock()
+        # Config and view
         self.main_view = MainView()
         self.main_view.update_config_fields(self.config)
         # Internal flag for settings popup
@@ -66,7 +66,7 @@ class GameController:
             pygame.K_RETURN: self._on_return_key,
         }
 
-    def apply_config_changes(self) -> bool:
+    def apply_config_changes(self, ui_action=None) -> bool:
         """Apply settings from popup to config and restart engine."""
         new_conf = self.main_view.get_config_values()
         if new_conf:
@@ -79,7 +79,9 @@ class GameController:
                     self.config['dda_params'].update(dda_params_dict)
             else:
                 self.config.update(cast(Dict[str, Any], new_conf))
-            
+            #print how many fields were updated
+            print(f"[engine/game_controller.py][84] {len(new_conf)} fields were updated")
+
             # Recreate engine with updated config
             self.engine = GameEngine(self.config)
             # Update view with new config values
@@ -166,6 +168,4 @@ class GameController:
             self.engine.update_animations()
             # render UI and game
             self.render()
-            # Cap frame rate
-            self.clock.tick(60)
         pygame.quit() 

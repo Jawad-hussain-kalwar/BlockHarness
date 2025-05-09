@@ -26,6 +26,8 @@ class GameEngine:
         self.score = 0
         self.lines = 0
         self.blocks_placed = 0
+        self.clear_rate = 0.0
+        self.recent_clears = [0] * 6  # Track last 6 clears
         self._game_over = False
 
         # Initialize block pool with configuration
@@ -36,7 +38,7 @@ class GameEngine:
                 self.config
             )
         except Exception as e:
-            print(f"[engine/game_engine.py] Error initializing BlockPool: {e}, using fallback defaults")
+            print(f"[engine/game_engine.py][41] Error initializing BlockPool: {e}, using fallback defaults")
             # Fallback to default shapes and weights
             self.config["shapes"] = SHAPES.copy()
             self.config["shape_weights"] = DEFAULT_WEIGHTS
@@ -56,7 +58,7 @@ class GameEngine:
         try:
             self._refill_preview()
         except Exception as e:
-            print(f"[engine/game_engine.py][68] Error filling preview: {e}")
+            print(f"[engine/game_engine.py][61] Error filling preview: {e}")
             # If refill fails, initialize with empty preview
             self._preview_blocks = []
             self._selected_preview_index = None
@@ -88,11 +90,81 @@ class GameEngine:
         """Get the index of the currently selected preview block."""
         return self._selected_preview_index
     
+    def get_recent_clears(self) -> List[int]:
+        """Get the number of recent clears (last 6 moves)."""
+        return self.recent_clears.copy()
+    
+    def get_best_fit_block(self) -> List[Block]:
+        """Get blocks that clear the most lines on the current board.
+        
+        Returns:
+            List of Block objects that clear the most lines on the current board.
+            If no blocks clear any lines, returns an empty list.
+        """
+        best_blocks = []
+        max_lines_cleared = 0
+        
+        # Get all possible blocks from shapes
+        all_shapes = self.config["shapes"]
+        for shape_id, shape_data in all_shapes.items():
+            # Create a block for each shape
+            block = Block(shape_id, shape_data)
+            
+            # Find maximum lines this block can clear
+            max_lines_for_block = 0
+            for r in range(self.board.rows):
+                for c in range(self.board.cols):
+                    if self.board.can_place(block, r, c):
+                        # Simulate placing the block
+                        test_board = Board()
+                        test_board.grid = [row[:] for row in self.board.grid]
+                        test_board.place_block(block, r, c)
+                        
+                        # Count cleared lines
+                        cells_to_clear = test_board.find_full_lines()
+                        lines_cleared = self._count_lines_from_cells(cells_to_clear)
+                        
+                        max_lines_for_block = max(max_lines_for_block, lines_cleared)
+            
+            # Update best blocks list
+            if max_lines_for_block > 0:
+                if max_lines_for_block > max_lines_cleared:
+                    max_lines_cleared = max_lines_for_block
+                    best_blocks = [block]
+                elif max_lines_for_block == max_lines_cleared:
+                    best_blocks.append(block)
+        print(f"[engine/game_engine.py][136] Found {len(best_blocks)} best fit blocks")
+        return best_blocks
+    
+    def get_game_over_blocks(self) -> List[Block]:
+        """Get blocks that cannot fit anywhere on the current board.
+        
+        Returns:
+            List of Block objects that cannot be placed on the current board.
+        """
+        game_over_blocks = []
+        
+        # Check all possible blocks
+        all_shapes = self.config["shapes"]
+        for shape_id, shape_data in all_shapes.items():
+            # Create a block for this shape
+            block = Block(shape_id, shape_data)
+            
+            # Check if block can be placed anywhere
+            if not self._has_valid_placement(block):
+                game_over_blocks.append(block)
+        print(f"[engine/game_engine.py][141] Found {len(game_over_blocks)} game over blocks")
+        return game_over_blocks
+
     def get_metrics(self) -> Dict:
         """Get minimal metrics for DDA block generation."""
+        print(f"[engine/game_engine.py][156] Getting metrics")
         return {
             "score": self.score,
-            "clear_rate": (self.lines / self.blocks_placed) if self.blocks_placed else 0.0
+            "clear_rate": self.clear_rate,
+            "recent_clears": self.get_recent_clears(),
+            "best_fit_blocks": self.get_best_fit_block(),
+            "game_over_blocks": self.get_game_over_blocks()
         }
     
     def select_preview_block(self, index: int) -> bool:
@@ -106,7 +178,7 @@ class GameEngine:
         """
         if 0 <= index < len(self._preview_blocks):
             self._selected_preview_index = index
-            print(f"[engine/game_engine.py][286] Selected preview block at index: {index}")
+            print(f"[engine/game_engine.py][180] Selected preview block at index: {index}")
             return True
         return False
     
@@ -162,29 +234,30 @@ class GameEngine:
             
         # Place the block
         self.board.place_block(block, row, col)
-        print(f"[engine/game_engine.py][175] Placed block at {row}, {col}")
+        print(f"[engine/game_engine.py][236] Placed block at {row}, {col}")
         self.blocks_placed += 1
         
         # Find cells to clear and create animation
         cells_to_clear = self.board.find_full_lines()
         line_count = self._count_lines_from_cells(cells_to_clear)
         
+        # Update recent clears (shift left and add new count)
+        self.recent_clears.pop(0)
+        self.recent_clears.append(line_count)
+        
+        # Update clear rate
+        self.clear_rate = self.lines / self.blocks_placed if self.blocks_placed > 0 else 0.0
+        
         # Handle line clearing with animation if lines were cleared
         if cells_to_clear:
-            if self.animation_duration_ms > 0:
-                # Create fadeout animation for cleared cells
-                self.animation_manager.add_animation(
-                    FadeoutAnimation(cells_to_clear, self.animation_duration_ms)
-                )
-                # Update lines count (count of lines cleared)
-                self.lines += line_count
-                # Update score based on number of cells cleared
-                self.score += self.compute_line_score(len(cells_to_clear))
-            else:
-                # Skip animation when duration is 0 (simulation mode)
-                self.lines += line_count
-                self.score += self.compute_line_score(len(cells_to_clear))
-                self.board.clear_cells(cells_to_clear)
+            # Create fadeout animation for cleared cells
+            self.animation_manager.add_animation(
+                FadeoutAnimation(cells_to_clear, self.animation_duration_ms)
+            )
+            # Update lines count (count of lines cleared)
+            self.lines += line_count
+            # Update score based on number of cells cleared
+            self.score += self.compute_line_score(len(cells_to_clear))
         else:
             # No lines to clear, just add 1 point for block placement
             self.score += len(block.cells)
@@ -249,6 +322,7 @@ class GameEngine:
             
         try:
             # Get blocks directly from the enhanced BlockPool
+            print(f"[engine/game_engine.py][325] Refilling preview")
             new_blocks = self.pool.get_next_blocks(self)
             
             # Add new blocks to preview
@@ -258,10 +332,9 @@ class GameEngine:
             if self._selected_preview_index is None and self._preview_blocks:
                 self._selected_preview_index = 0
                 
-            # Metrics manager removed; preview metrics not tracked
-            print(f"[engine/game_engine.py][286] Refilled preview with {len(self._preview_blocks)} blocks")
+            print(f"[engine/game_engine.py][333] Refilled preview with {len(self._preview_blocks)} blocks")
         except Exception as e:
-            print(f"[engine/game_engine.py][288] Error in _refill_preview: {e}")
+            print(f"[engine/game_engine.py][335] Error in _refill_preview: {e}")
             # No fallback - if we have errors, we need to know and fix the root cause
     
     def _has_valid_placement(self, block: Block) -> bool:
@@ -289,7 +362,7 @@ class GameEngine:
                 
         # No valid placements for any blocks, game over
         self._game_over = True
-        print(f"[engine/game_engine.py][316] Game over: score: {self.score}, lines: {self.lines}, blocks placed: {self.blocks_placed}")
+        print(f"[engine/game_engine.py][363] Game over: score: {self.score}, lines: {self.lines}, blocks placed: {self.blocks_placed}")
         return True
     
     def _count_lines_from_cells(self, cells: Set[Tuple[int, int]]) -> int:

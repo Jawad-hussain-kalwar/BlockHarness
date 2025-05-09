@@ -55,14 +55,12 @@ class Board:
         # Find full rows
         for r in range(self.rows):
             if all(self.grid[r][c] for c in range(self.cols)):
-                print(f"[engine/board.py][59] Found full row at {r}")
                 for c in range(self.cols):
                     cells_to_clear.add((r, c))
         
         # Find full cols
         for c in range(self.cols):
             if all(self.grid[r][c] for r in range(self.rows)):
-                print(f"[engine/board.py][64] Found full column at {c}")
                 for r in range(self.rows):
                     cells_to_clear.add((r, c))
                     
