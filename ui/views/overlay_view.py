@@ -182,5 +182,7 @@ class OverlayView:
     def is_restart_button_clicked(self, pos):
         """Check if the restart button was clicked at the given position"""
         if self.restart_button_rect:
-            return self.restart_button_rect.collidepoint(pos)
+            # Convert position to float for accurate collision detection
+            x, y = float(pos[0]), float(pos[1])
+            return self.restart_button_rect.collidepoint(x, y)
         return False

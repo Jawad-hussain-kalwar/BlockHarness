@@ -84,16 +84,16 @@ class GameSection:
             y: Y coordinate of click
             
         Returns:
-            Boolean: True if board was clicked, False otherwise
+            Tuple: (row, col) grid position if board was clicked, None otherwise
         """
         board_width = 8 * self.cell_size
         board_height = 8 * self.cell_size
         board_rect = pygame.Rect(self.rect.x + BOARD_PADDING_W, self.rect.y + STATS_HEIGHT + HINTS_HEIGHT, board_width, board_height)
         
         if board_rect.collidepoint(x, y):
-            # Calculate grid position
-            grid_x = (x - (self.rect.x + BOARD_PADDING_W)) // self.cell_size
-            grid_y = (y - (self.rect.y + STATS_HEIGHT + HINTS_HEIGHT)) // self.cell_size
+            # Calculate grid position and ensure they're integers
+            grid_x = int((x - (self.rect.x + BOARD_PADDING_W)) // self.cell_size)
+            grid_y = int((y - (self.rect.y + STATS_HEIGHT + HINTS_HEIGHT)) // self.cell_size)
             
             # Return the grid position for the controller to handle
             return (grid_y, grid_x)
@@ -110,6 +110,10 @@ class GameSection:
         Returns:
             Integer: Index of clicked preview block, or None if no preview was clicked
         """
+        # Ensure coordinates are float for accurate collision detection
+        x = float(x)
+        y = float(y)
+        
         # Use the preview_view's rectangles for click detection
         for i, preview_rect in enumerate(self.preview_view.preview_rects):
             if preview_rect.collidepoint(x, y):

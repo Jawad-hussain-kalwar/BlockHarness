@@ -2,14 +2,14 @@
 """
 Layout constants for the BlockHarness UI.
 
-The UI has a fixed size of 680x960 pixels and is not resizable.
-The Game Section contains:
-- Stats View (top): 100px height with three stat boxes
-- Game Board (middle): 640x640px with 20px padding on sides
-- Preview View (bottom): Contains three 160x160px preview blocks
+This layout is designed to be responsive for Android devices:
+- The game scales horizontally to fill the device screen width
+- Vertical space is adjusted proportionally to maintain aspect ratio
+- Elements are positioned relative to the base dimensions and scaled on render
+- Touch targets are sized appropriately for mobile interfaces
 """
 
-# Window dimensions - fixed size
+# Base design dimensions - used as reference for scaling
 WINDOW_WIDTH = 680
 WINDOW_HEIGHT = 960
 PADDING = 10           # space between sections and window edges
@@ -49,6 +49,10 @@ PREVIEW_PADDING_V = (PREVIEW_HEIGHT - PREVIEW_BLOCK) // 2
 PREVIEW_PADDING_H = BOARD_PADDING_W
 PREVIEW_GAP = 80  # horizontal gap between preview blocks
 
+# Touch-friendly UI constants for mobile
+TOUCH_TARGET_MIN = 48  # Minimum touch target size (in pixels)
+BUTTON_PADDING = 12    # Padding for buttons to increase touch area
+
 # Legacy constants - keeping for backward compatibility
 SIDEBAR_WIDTH      = 560
 SIDEBAR_PADDING    = 16
@@ -58,3 +62,34 @@ SECTION_SPACING    = 24
 LABEL_SPACING      = 8
 BORDER_RADIUS      = 4
 SECTION_WIDTH      = (SIDEBAR_WIDTH - (SIDEBAR_PADDING * 3)) // 2
+
+# Dynamic scaling helpers
+def scale_position(x: float, y: float, scale_factor: float) -> tuple:
+    """Scale a position based on the current scale factor.
+    
+    Args:
+        x: Original x coordinate
+        y: Original y coordinate
+        scale_factor: Current scaling factor
+        
+    Returns:
+        Tuple containing scaled x and y coordinates
+    """
+    return x * scale_factor, y * scale_factor
+
+def scale_rect(rect, scale_factor: float) -> tuple:
+    """Scale a rectangle (x, y, width, height) based on the current scale factor.
+    
+    Args:
+        rect: Original rectangle as (x, y, width, height)
+        scale_factor: Current scaling factor
+        
+    Returns:
+        Tuple containing scaled rectangle values
+    """
+    return (
+        rect[0] * scale_factor,
+        rect[1] * scale_factor,
+        rect[2] * scale_factor,
+        rect[3] * scale_factor
+    )

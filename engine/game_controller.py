@@ -3,7 +3,7 @@ import pygame
 import ctypes
 import sys
 import os
-from typing import Optional, Dict, Any, cast
+from typing import Optional, Dict, Any, cast, Tuple
 
 from engine.game_engine import GameEngine
 from ui.views.main_view import MainView
@@ -38,8 +38,21 @@ class GameController:
         except Exception:
             pass
 
-        # Setup fixed window size
-        self.window = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+        # Get device screen info for responsive sizing
+        info = pygame.display.Info()
+        self.screen_width = info.current_w
+        self.screen_height = info.current_h
+        
+        # For Android, we want to use full screen width and scale height proportionally
+        self.scale_factor = self.screen_width / WINDOW_WIDTH
+        self.scaled_height = int(WINDOW_HEIGHT * self.scale_factor)
+        
+        # Use fullscreen for Android
+        if sys.platform == 'android':
+            self.window = pygame.display.set_mode((self.screen_width, self.screen_height), pygame.FULLSCREEN)
+        else:
+            # For other platforms, maintain the aspect ratio but make it responsive
+            self.window = pygame.display.set_mode((self.screen_width, self.scaled_height))
         
         # Config and view
         self.main_view = MainView()
@@ -55,15 +68,6 @@ class GameController:
             'place_block': self._on_place_block,
             'toggle_settings': self._toggle_settings_popup,
             'close': self._close_settings_popup,
-        }
-        
-        # Keyboard event mapping
-        self.key_handlers = {
-            pygame.K_ESCAPE: self._on_quit,
-            pygame.K_q: self._on_quit,
-            pygame.K_F2: self.restart_game,
-            pygame.K_s: self._toggle_settings_popup,
-            pygame.K_RETURN: self._on_return_key,
         }
 
     def apply_config_changes(self, ui_action=None) -> bool:
@@ -117,15 +121,6 @@ class GameController:
     def _close_settings_popup(self, ui_action=None) -> None:
         """Close the settings popup."""
         self.show_settings = False
-        
-    def _on_quit(self) -> bool:
-        """Handle quit event."""
-        return False  # Return False to exit the game loop
-        
-    def _on_return_key(self) -> None:
-        """Handle Enter key press."""
-        if self.engine.game_over:
-            self.restart_game()
 
     def handle_events(self) -> bool:
         """Process Pygame events and UI actions."""
@@ -135,7 +130,8 @@ class GameController:
                 return False
 
             # Handle UI actions from view
-            ui_action = self.main_view.handle_event(event, self.show_settings, self.engine)
+            ui_action = self.main_view.handle_event(event, self.show_settings, self.engine,
+                                                    self.scale_factor)
             if ui_action:
                 action = ui_action.get('action')
                 if action in self.action_handlers:
@@ -143,20 +139,34 @@ class GameController:
                     # If a handler returned False explicitly, exit the game loop
                     if result is False:
                         return False
-
-            # Handle keyboard shortcuts
-            if event.type == pygame.KEYDOWN:
-                if event.key in self.key_handlers:
-                    result = self.key_handlers[event.key]()
-                    # If a handler returned False explicitly, exit the game loop
-                    if result is False:
-                        return False
+                        
+            # Handle game restart on game over screen (touch anywhere)
+            if event.type == pygame.MOUSEBUTTONDOWN and self.engine.game_over:
+                self.restart_game()
 
         return True
 
     def render(self) -> None:
         """Render the view and engine state."""
-        self.main_view.render(self.window, self.engine, self.show_settings)
+        # Clear the window with a background color (black or another color from your palette)
+        self.window.fill((0, 0, 0))
+        
+        # Create a scaled surface for the game area
+        game_surface = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+        
+        # Render the game to this surface
+        self.main_view.render(game_surface, self.engine, self.show_settings)
+        
+        # Scale the surface to fit the window width
+        scaled_surface = pygame.transform.scale(game_surface, 
+                                              (self.screen_width, self.scaled_height))
+        
+        # Calculate the position to center vertically (if needed)
+        y_position = (self.screen_height - self.scaled_height) // 2 if self.screen_height > self.scaled_height else 0
+        
+        # Blit the scaled surface to the window
+        self.window.blit(scaled_surface, (0, y_position))
+        
         pygame.display.flip()
 
     def loop(self) -> None:
