@@ -114,7 +114,7 @@ class GameController:
         """Toggle the visibility of the settings popup."""
         self.show_settings = not self.show_settings
         
-    def _close_settings_popup(self) -> None:
+    def _close_settings_popup(self, ui_action=None) -> None:
         """Close the settings popup."""
         self.show_settings = False
         
