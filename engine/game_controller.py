@@ -114,7 +114,7 @@ class GameController:
         if pos:
             self.engine.place_selected_block(*pos)
 
-    def _toggle_settings_popup(self) -> None:
+    def _toggle_settings_popup(self, ui_action=None) -> None:
         """Toggle the visibility of the settings popup."""
         self.show_settings = not self.show_settings
         
